@@ -6,18 +6,6 @@
   --cm-header-height: 56px;
 }
 
-/* Prevent zoom - native app feel */
-html {
-  touch-action: manipulation;
-  -ms-touch-action: manipulation;
-  overscroll-behavior: none;
-}
-body {
-  -webkit-text-size-adjust: 100%;
-  -ms-text-size-adjust: 100%;
-  overscroll-behavior: none;
-}
-
 /* Layout */
 .cm-container {
   display: flex;
@@ -1105,6 +1093,12 @@ body {
 
 /* iOS safe area */
 @supports (padding-top: env(safe-area-inset-top)) {
-  .cm-header { padding-top: env(safe-area-inset-top); }
+  .cm-header {
+    padding-top: env(safe-area-inset-top);
+    height: calc(var(--cm-header-height) + env(safe-area-inset-top));
+  }
   .cm-sidebar { padding-top: env(safe-area-inset-top); }
+  .cm-v-top { padding-top: calc(12px + env(safe-area-inset-top)); }
+  .cm-v-bottom { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+  .cm-v-sidebar { margin-right: env(safe-area-inset-right); }
 }
