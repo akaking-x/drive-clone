@@ -6,10 +6,16 @@
   --cm-header-height: 56px;
 }
 
-/* Layout */
+/* Layout - prevent any horizontal overflow */
+html, body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
 .cm-container {
   display: flex;
   min-height: 100vh;
+  max-width: 100vw;
+  overflow-x: hidden;
   background: var(--bg-color);
 }
 
@@ -197,20 +203,22 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  max-width: calc(100vw - var(--cm-sidebar-width));
+  overflow-x: hidden;
 }
 
 .cm-header {
-  height: var(--cm-header-height);
+  min-height: var(--cm-header-height);
   background: var(--white);
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
-  padding: 0 20px;
-  gap: 10px;
+  padding: 0 16px;
+  gap: 8px;
   position: sticky;
   top: 0;
   z-index: 50;
-  overflow: hidden;
+  flex-shrink: 0;
 }
 
 .cm-menu-toggle {
@@ -235,7 +243,7 @@
 .cm-header-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-shrink: 0;
 }
 
@@ -355,6 +363,11 @@
 .cm-post-card-thumb img {
   width: 100%; height: 100%;
   object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.cm-post-card-thumb img.loaded {
+  opacity: 1;
 }
 .cm-post-card-thumb .cm-post-no-thumb {
   color: rgba(255,255,255,0.3);
@@ -371,7 +384,46 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  cursor: pointer;
+  z-index: 2;
+  -webkit-user-select: none;
+  user-select: none;
 }
+
+/* Long-press status popup */
+.cm-status-popup {
+  position: absolute;
+  top: 30px; left: 8px;
+  display: flex;
+  gap: 0;
+  background: rgba(0,0,0,0.85);
+  border-radius: 8px;
+  overflow: hidden;
+  z-index: 5;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  animation: cm-popup-in 0.15s ease;
+}
+@keyframes cm-popup-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.cm-status-popup-btn {
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.cm-status-popup-btn:hover { background: rgba(255,255,255,0.15); }
+.cm-status-popup-btn.active { background: var(--cm-accent); }
+
 .cm-status-draft { background: rgba(255,255,255,0.9); color: #666; }
 .cm-status-hidden { background: rgba(234,67,53,0.9); color: #fff; }
 .cm-status-done { background: rgba(52,168,83,0.9); color: #fff; }
@@ -919,19 +971,20 @@
 .cm-v-progress {
   position: absolute;
   bottom: 0; left: 0; right: 0;
-  height: 4px;
-  background: rgba(255,255,255,0.25);
+  height: 3px;
+  background: rgba(255,255,255,0.4);
   z-index: 30;
   cursor: pointer;
   transition: height 0.15s;
 }
 .cm-v-progress:hover,
-.cm-v-progress.active { height: 10px; }
+.cm-v-progress.active { height: 12px; }
 .cm-v-progress-fill {
   height: 100%;
   background: var(--cm-accent);
   width: 0;
   pointer-events: none;
+  border-radius: 0 2px 2px 0;
 }
 .cm-v-progress-handle {
   position: absolute;
@@ -1148,10 +1201,12 @@
 @media (max-width: 768px) {
   .cm-sidebar { transform: translateX(-100%); }
   .cm-sidebar.open { transform: translateX(0); }
-  .cm-main { margin-left: 0; }
+  .cm-main { margin-left: 0; max-width: 100vw; }
   .cm-menu-toggle { display: block; }
 
-  .cm-header { padding: 0 12px; gap: 8px; }
+  .cm-header { padding: 0 10px; gap: 6px; }
+  .cm-btn-upload span { display: none; }
+  .cm-btn-upload { padding: 8px 10px; }
   .cm-content-area { padding: 12px; }
 
   .cm-post-grid {
@@ -1198,7 +1253,7 @@
   .cm-post-card { -webkit-tap-highlight-color: transparent; }
   .cm-post-card-actions { opacity: 1; }
   .cm-card-action { width: 34px; height: 34px; }
-  .cm-v-progress { height: 4px; }
+  .cm-v-progress { height: 3px; }
 }
 
 /* iOS safe area */
@@ -1209,6 +1264,7 @@
   }
   .cm-sidebar { padding-top: env(safe-area-inset-top); }
   .cm-v-top { padding-top: calc(12px + env(safe-area-inset-top)); }
-  .cm-v-bottom { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+  .cm-v-bottom { padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
+  .cm-v-progress { bottom: env(safe-area-inset-bottom); }
   .cm-v-sidebar { margin-right: env(safe-area-inset-right); }
 }

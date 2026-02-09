@@ -636,6 +636,30 @@ class ContentManagerApp {
       empty.style.display = 'none';
       grid.innerHTML = this.posts.map((post, i) => this.renderPostCard(post, i)).join('');
 
+      // Lazy loading with IntersectionObserver
+      if ('IntersectionObserver' in window) {
+        const imgObserver = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              const img = entry.target;
+              if (img.dataset.src) {
+                img.src = img.dataset.src;
+                img.removeAttribute('data-src');
+              }
+              img.addEventListener('load', () => img.classList.add('loaded'), { once: true });
+              imgObserver.unobserve(img);
+            }
+          });
+        }, { rootMargin: '200px' });
+        grid.querySelectorAll('.cm-post-card-thumb img[data-src]').forEach(img => imgObserver.observe(img));
+      } else {
+        // Fallback: load all
+        grid.querySelectorAll('.cm-post-card-thumb img[data-src]').forEach(img => {
+          img.src = img.dataset.src;
+          img.addEventListener('load', () => img.classList.add('loaded'), { once: true });
+        });
+      }
+
       // Bind card action buttons (copy/download on thumbnail)
       grid.querySelectorAll('.cm-card-action').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -647,6 +671,26 @@ class ContentManagerApp {
         });
       });
 
+      // Long-press on status badge to change status
+      grid.querySelectorAll('.cm-post-card-status').forEach(badge => {
+        let pressTimer = null;
+        const startPress = (e) => {
+          e.stopPropagation();
+          pressTimer = setTimeout(() => {
+            e.preventDefault();
+            this.showStatusPopup(badge);
+          }, 400);
+        };
+        const cancelPress = () => { clearTimeout(pressTimer); };
+        badge.addEventListener('mousedown', startPress);
+        badge.addEventListener('mouseup', cancelPress);
+        badge.addEventListener('mouseleave', cancelPress);
+        badge.addEventListener('touchstart', startPress, { passive: false });
+        badge.addEventListener('touchend', (e) => { cancelPress(); e.stopPropagation(); });
+        badge.addEventListener('touchmove', cancelPress);
+        badge.addEventListener('click', (e) => e.stopPropagation());
+      });
+
       // Bind card clicks
       grid.querySelectorAll('.cm-post-card').forEach(card => {
         card.addEventListener('click', () => this.openViewer(parseInt(card.dataset.index)));
@@ -654,12 +698,10 @@ class ContentManagerApp {
         // Hover preview
         let hoverVideo = null;
         card.addEventListener('mouseenter', () => {
-          if (!post) return;
           const idx = parseInt(card.dataset.index);
           const p = this.posts[idx];
           if (!p || !p.video || !p.video.s3Key) return;
 
-          // Delay to avoid excessive loading
           card._hoverTimer = setTimeout(async () => {
             try {
               const res = await fetch(`/api/video-posts/${p._id}/video`);
@@ -703,7 +745,7 @@ class ContentManagerApp {
         <div class="cm-post-card-inner">
           <div class="cm-post-card-thumb">
             ${hasThumb
-              ? `<img src="/api/video-posts/${post._id}/thumbnail" alt="Post ${post.post_number}" loading="lazy">`
+              ? `<img data-src="/api/video-posts/${post._id}/thumbnail" alt="Post ${post.post_number}">`
               : `<div class="cm-post-no-thumb">
                   <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
                 </div>`
@@ -1047,26 +1089,62 @@ class ContentManagerApp {
   async changePostStatus(status) {
     const post = this.posts[this.viewerIndex];
     if (!post) return;
+    await this._updatePostStatus(post, status);
+    this.updateViewer(post);
+    const isViewer = document.getElementById('viewerModal')?.classList.contains('active');
+    if (isViewer) this.showViewerFeedback(status.toUpperCase());
+  }
 
+  async _updatePostStatus(post, status) {
     const res = await fetch(`/api/video-posts/${post._id}/status`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status })
     });
-
     const data = await res.json();
     if (data.success) {
       post.status = status;
-      this.updateViewer(post);
-      // Update grid card
       const card = document.querySelector(`.cm-post-card[data-id="${post._id}"]`);
       if (card) {
         const badge = card.querySelector('.cm-post-card-status');
         badge.className = `cm-post-card-status cm-status-${status}`;
         badge.textContent = status;
       }
-      this.showToast(`Status: ${status}`, 'success');
     }
+    return data;
+  }
+
+  showStatusPopup(badge) {
+    // Remove any existing popup
+    document.querySelectorAll('.cm-status-popup').forEach(p => p.remove());
+
+    const card = badge.closest('.cm-post-card');
+    const postId = card.dataset.postId || card.dataset.id;
+    const post = this.posts.find(p => p._id === postId);
+    if (!post) return;
+
+    const popup = document.createElement('div');
+    popup.className = 'cm-status-popup';
+    ['draft', 'done', 'posted', 'hidden'].forEach(s => {
+      const btn = document.createElement('button');
+      btn.className = 'cm-status-popup-btn' + (post.status === s ? ' active' : '');
+      btn.textContent = s;
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await this._updatePostStatus(post, s);
+        popup.remove();
+        this.showToast(`Status: ${s}`, 'success');
+      });
+      popup.appendChild(btn);
+    });
+
+    card.querySelector('.cm-post-card-inner').appendChild(popup);
+
+    // Auto-close on click outside
+    const close = (e) => {
+      if (!popup.contains(e.target)) { popup.remove(); document.removeEventListener('click', close); }
+    };
+    setTimeout(() => document.addEventListener('click', close), 10);
   }
 
   async deletePost() {
