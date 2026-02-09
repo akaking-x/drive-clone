@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#fe2c55">
   <title>Content Manager - Drive Clone</title>
   <link rel="stylesheet" href="/css/style.css?v=3">
-  <link rel="stylesheet" href="/css/content-manager.css?v=2">
+  <link rel="stylesheet" href="/css/content-manager.css?v=3">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
 </head>
 <body>
@@ -244,6 +244,22 @@
         <button class="cm-modal-close" data-close="uploadPostModal">&times;</button>
       </div>
       <div class="cm-modal-body">
+        <!-- Batch Upload Zone -->
+        <div class="cm-batch-upload" id="batchDropzone">
+          <div class="cm-batch-upload-content" id="batchDropContent">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <span>Drop all files here or click to select</span>
+            <small>Select video + thumbnail + txt in one go</small>
+          </div>
+          <input type="file" id="batchInput" multiple accept="video/*,image/*,.txt,text/plain" style="display:none;">
+        </div>
+
+        <div class="cm-upload-divider"><span>or select individually</span></div>
+
         <div class="cm-upload-grid">
           <!-- Video Upload -->
           <div class="cm-upload-zone" id="videoDropzone">
@@ -286,6 +302,9 @@
             <input type="file" id="txtInput" accept=".txt,text/plain" style="display:none;">
           </div>
         </div>
+
+        <!-- TXT Validation Feedback -->
+        <div class="cm-txt-validation" id="txtValidation" style="display:none;"></div>
 
         <!-- Text Content -->
         <div class="cm-text-section">

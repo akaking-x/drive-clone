@@ -57,16 +57,19 @@ class ContentManagerApp {
     document.getElementById('btnUploadPost').addEventListener('click', () => this.openUploadModal());
     document.getElementById('btnDoUpload').addEventListener('click', () => this.uploadPost());
 
-    // Upload zones
+    // Upload zones (individual)
     this.setupDropzone('videoDropzone', 'videoInput', 'videoDropContent');
     this.setupDropzone('thumbDropzone', 'thumbInput', 'thumbDropContent');
     this.setupDropzone('txtDropzone', 'txtInput', 'txtDropContent');
 
-    // When txt file is selected, also read it into raw text
+    // When txt file is selected, validate and read into text fields
     document.getElementById('txtInput').addEventListener('change', () => {
       const file = document.getElementById('txtInput').files[0];
       if (file) this.readTxtFile(file);
     });
+
+    // Batch upload zone
+    this.setupBatchDropzone();
 
     // Text mode toggle
     document.getElementById('modeStructured').addEventListener('click', () => this.setTextMode('structured'));
@@ -179,7 +182,6 @@ class ContentManagerApp {
 
   updateDropzonePreview(zone, content, file) {
     zone.classList.add('has-file');
-    const isVideo = file.type.startsWith('video/');
     content.innerHTML = `
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--success-color)" stroke-width="2">
         <polyline points="20 6 9 17 4 12"></polyline>
@@ -188,6 +190,105 @@ class ContentManagerApp {
       <small>${this.formatSize(file.size)}</small>
     `;
   }
+
+  // === Batch Upload ===
+
+  setupBatchDropzone() {
+    const zone = document.getElementById('batchDropzone');
+    const input = document.getElementById('batchInput');
+
+    zone.addEventListener('click', () => input.click());
+    zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('active'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('active'));
+    zone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      zone.classList.remove('active');
+      if (e.dataTransfer.files.length > 0) {
+        this.handleBatchFiles(e.dataTransfer.files);
+      }
+    });
+    input.addEventListener('change', () => {
+      if (input.files.length > 0) this.handleBatchFiles(input.files);
+    });
+  }
+
+  handleBatchFiles(fileList) {
+    const files = Array.from(fileList);
+    let videoFile = null, thumbFile = null, txtFile = null;
+    const unmatched = [];
+
+    for (const f of files) {
+      const ext = f.name.split('.').pop().toLowerCase();
+      if (!videoFile && f.type.startsWith('video/')) {
+        videoFile = f;
+      } else if (!thumbFile && f.type.startsWith('image/')) {
+        thumbFile = f;
+      } else if (!txtFile && (f.type === 'text/plain' || ext === 'txt')) {
+        txtFile = f;
+      } else {
+        unmatched.push(f);
+      }
+    }
+
+    // Assign to individual inputs via DataTransfer
+    if (videoFile) {
+      const dt = new DataTransfer();
+      dt.items.add(videoFile);
+      document.getElementById('videoInput').files = dt.files;
+      this.updateDropzonePreview(
+        document.getElementById('videoDropzone'),
+        document.getElementById('videoDropContent'),
+        videoFile
+      );
+    }
+    if (thumbFile) {
+      const dt = new DataTransfer();
+      dt.items.add(thumbFile);
+      document.getElementById('thumbInput').files = dt.files;
+      this.updateDropzonePreview(
+        document.getElementById('thumbDropzone'),
+        document.getElementById('thumbDropContent'),
+        thumbFile
+      );
+    }
+    if (txtFile) {
+      const dt = new DataTransfer();
+      dt.items.add(txtFile);
+      document.getElementById('txtInput').files = dt.files;
+      this.updateDropzonePreview(
+        document.getElementById('txtDropzone'),
+        document.getElementById('txtDropContent'),
+        txtFile
+      );
+      this.readTxtFile(txtFile);
+    }
+
+    // Update batch zone summary
+    const batchZone = document.getElementById('batchDropzone');
+    const batchContent = document.getElementById('batchDropContent');
+    const tags = [];
+    if (videoFile) tags.push(`<span class="cm-batch-tag cm-batch-tag-video">${this.escapeHtml(videoFile.name)}</span>`);
+    if (thumbFile) tags.push(`<span class="cm-batch-tag cm-batch-tag-image">${this.escapeHtml(thumbFile.name)}</span>`);
+    if (txtFile) tags.push(`<span class="cm-batch-tag cm-batch-tag-text">${this.escapeHtml(txtFile.name)}</span>`);
+    unmatched.forEach(f => tags.push(`<span class="cm-batch-tag cm-batch-tag-unknown">${this.escapeHtml(f.name)} (?)</span>`));
+
+    if (tags.length > 0) {
+      batchZone.classList.add('has-file');
+      batchContent.innerHTML = `
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--success-color)" stroke-width="2">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span style="font-size:12px;">${files.length} file(s) detected</span>
+        <div class="cm-batch-upload-summary">${tags.join('')}</div>
+      `;
+    }
+
+    if (unmatched.length > 0) {
+      this.showToast(`${unmatched.length} file(s) not recognized`, 'warning');
+    }
+  }
+
+  // === Text Mode & TXT Validation ===
 
   setTextMode(mode) {
     document.getElementById('modeStructured').classList.toggle('active', mode === 'structured');
@@ -202,31 +303,91 @@ class ContentManagerApp {
       const text = e.target.result;
       document.getElementById('inputRawText').value = text;
 
-      // Try to parse structured fields from the text
-      const lines = text.split('\n');
-      const hookLine = lines.find(l => /^hook\s*[:：]/i.test(l.trim()));
-      const captionLine = lines.find(l => /^caption\s*[:：]/i.test(l.trim()));
-      const hashtagsLine = lines.find(l => /^hashtag/i.test(l.trim()));
+      // Validate and parse
+      const result = this.validateTxtContent(text);
+      this.showTxtValidation(result);
 
-      if (hookLine) {
-        document.getElementById('inputHook').value = hookLine.replace(/^hook\s*[:：]\s*/i, '').trim();
-      }
-      if (captionLine) {
-        document.getElementById('inputCaption').value = captionLine.replace(/^caption\s*[:：]\s*/i, '').trim();
-      }
-      if (hashtagsLine) {
-        document.getElementById('inputHashtags').value = hashtagsLine.replace(/^hashtags?\s*[:：]\s*/i, '').trim();
-      }
-
-      // If no structured labels found, put everything into caption
-      if (!hookLine && !captionLine && !hashtagsLine) {
-        document.getElementById('inputCaption').value = text;
-      }
-
-      this.showToast('Text file loaded', 'success');
+      if (result.hook !== null) document.getElementById('inputHook').value = result.hook;
+      if (result.caption !== null) document.getElementById('inputCaption').value = result.caption;
+      if (result.hashtags !== null) document.getElementById('inputHashtags').value = result.hashtags;
     };
     reader.onerror = () => this.showToast('Failed to read text file', 'error');
     reader.readAsText(file, 'utf-8');
+  }
+
+  validateTxtContent(text) {
+    const lines = text.split('\n');
+    const result = { valid: true, errors: [], fields: {}, hook: null, caption: null, hashtags: null };
+
+    // Find fields (support multiline values between labels)
+    const labelPattern = /^(hook|caption|hashtags?)\s*[:：]\s*/i;
+    let currentField = null;
+    let currentValue = [];
+    const fieldMap = {};
+
+    for (const line of lines) {
+      const match = line.match(labelPattern);
+      if (match) {
+        // Save previous field
+        if (currentField) fieldMap[currentField] = currentValue.join('\n').trim();
+        const raw = match[1].toLowerCase();
+        const normalized = raw.startsWith('hashtag') ? 'hashtags' : raw;
+        currentField = normalized;
+        currentValue = [line.replace(labelPattern, '')];
+      } else if (currentField) {
+        currentValue.push(line);
+      }
+    }
+    if (currentField) fieldMap[currentField] = currentValue.join('\n').trim();
+
+    // Validate required fields
+    const hasHook = 'hook' in fieldMap && fieldMap.hook.length > 0;
+    const hasCaption = 'caption' in fieldMap && fieldMap.caption.length > 0;
+    const hasHashtags = 'hashtags' in fieldMap;
+
+    result.fields = { hook: hasHook, caption: hasCaption, hashtags: hasHashtags };
+
+    if (hasHook) result.hook = fieldMap.hook;
+    if (hasCaption) result.caption = fieldMap.caption;
+    if (hasHashtags) result.hashtags = fieldMap.hashtags;
+
+    if (!hasHook) { result.valid = false; result.errors.push('Missing "Hook:" field'); }
+    if (!hasCaption) { result.valid = false; result.errors.push('Missing "Caption:" field'); }
+
+    // If no structured labels found at all, treat as raw-only
+    if (!hasHook && !hasCaption && !hasHashtags) {
+      result.errors = ['No structured labels found (Hook: / Caption: / Hashtags:). Content loaded as raw text only.'];
+      result.caption = text; // fallback
+    }
+
+    return result;
+  }
+
+  showTxtValidation(result) {
+    const el = document.getElementById('txtValidation');
+    if (!result) { el.style.display = 'none'; return; }
+
+    el.style.display = '';
+    el.className = 'cm-txt-validation ' + (result.valid ? 'valid' : 'invalid');
+
+    let html = '';
+    if (result.valid) {
+      html += '<div><strong>TXT validated</strong></div>';
+      html += `<div class="cm-txt-field-ok">Hook: ${this.escapeHtml((result.hook || '').substring(0, 60))}${(result.hook || '').length > 60 ? '...' : ''}</div>`;
+      html += `<div class="cm-txt-field-ok">Caption: ${this.escapeHtml((result.caption || '').substring(0, 60))}${(result.caption || '').length > 60 ? '...' : ''}</div>`;
+      if (result.fields.hashtags) {
+        html += `<div class="cm-txt-field-ok">Hashtags: ${this.escapeHtml((result.hashtags || '').substring(0, 60))}</div>`;
+      } else {
+        html += `<div class="cm-txt-field-miss">Hashtags: (optional, not found)</div>`;
+      }
+    } else {
+      html += '<div><strong>TXT validation failed</strong></div>';
+      result.errors.forEach(err => { html += `<div>${this.escapeHtml(err)}</div>`; });
+      if (result.fields.hook) html += `<div class="cm-txt-field-ok">Hook: found</div>`;
+      if (result.fields.caption) html += `<div class="cm-txt-field-ok">Caption: found</div>`;
+    }
+
+    el.innerHTML = html;
   }
 
   setupViewerSwipe() {
@@ -573,17 +734,22 @@ class ContentManagerApp {
   }
 
   openUploadModal() {
-    // Reset file inputs
-    document.getElementById('videoInput').value = '';
-    document.getElementById('thumbInput').value = '';
-    document.getElementById('txtInput').value = '';
+    // Reset all file inputs
+    ['videoInput', 'thumbInput', 'txtInput', 'batchInput'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    // Reset individual dropzones
     document.getElementById('videoDropContent').innerHTML = '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg><span>Drop video or click</span><small>MP4, MOV, WebM</small>';
     document.getElementById('thumbDropContent').innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg><span>Thumbnail</span><small>JPG, PNG</small>';
     document.getElementById('txtDropContent').innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg><span>Text File</span><small>TXT</small>';
-    document.getElementById('videoDropzone').classList.remove('has-file');
-    document.getElementById('thumbDropzone').classList.remove('has-file');
-    document.getElementById('txtDropzone').classList.remove('has-file');
-    // Reset text fields
+    ['videoDropzone', 'thumbDropzone', 'txtDropzone'].forEach(id => {
+      document.getElementById(id).classList.remove('has-file');
+    });
+    // Reset batch zone
+    document.getElementById('batchDropzone').classList.remove('has-file');
+    document.getElementById('batchDropContent').innerHTML = '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg><span>Drop all files here or click to select</span><small>Select video + thumbnail + txt in one go</small>';
+    // Reset validation & text fields
+    document.getElementById('txtValidation').style.display = 'none';
     ['inputHook', 'inputCaption', 'inputHashtags', 'inputRawText', 'inputNotes'].forEach(id => {
       document.getElementById(id).value = '';
     });

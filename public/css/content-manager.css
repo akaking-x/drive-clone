@@ -494,6 +494,88 @@
   box-shadow: 0 0 0 3px rgba(254,44,85,0.1);
 }
 
+/* Batch Upload */
+.cm-batch-upload {
+  border: 2px dashed var(--border-color);
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  margin-bottom: 0;
+}
+.cm-batch-upload:hover { border-color: var(--cm-accent); background: rgba(254,44,85,0.03); }
+.cm-batch-upload.active { border-color: var(--cm-accent); background: rgba(254,44,85,0.05); }
+.cm-batch-upload.has-file { border-style: solid; border-color: var(--success-color); }
+.cm-batch-upload-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+}
+.cm-batch-upload-content span { font-size: 13px; font-weight: 500; }
+.cm-batch-upload-content small { font-size: 11px; }
+.cm-batch-upload-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 6px;
+}
+.cm-batch-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.cm-batch-tag-video { background: #e8f0fe; color: #1967d2; }
+.cm-batch-tag-image { background: #e6f4ea; color: #137333; }
+.cm-batch-tag-text  { background: #fef7e0; color: #b06000; }
+.cm-batch-tag-unknown { background: #f0f0f0; color: #666; }
+
+.cm-upload-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0;
+  color: var(--text-secondary);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.cm-upload-divider::before,
+.cm-upload-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-color);
+}
+
+/* TXT Validation */
+.cm-txt-validation {
+  margin-top: 8px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.cm-txt-validation.valid {
+  background: #e6f4ea;
+  color: #137333;
+  border: 1px solid #ceead6;
+}
+.cm-txt-validation.invalid {
+  background: #fce8e6;
+  color: #c5221f;
+  border: 1px solid #f5c6cb;
+}
+.cm-txt-validation .cm-txt-field-ok::before { content: '\2713 '; }
+.cm-txt-validation .cm-txt-field-miss::before { content: '\2717 '; }
+
 /* Upload Grid */
 .cm-upload-grid {
   display: grid;
