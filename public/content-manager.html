@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#fe2c55">
   <title>Content Manager - Drive Clone</title>
   <link rel="stylesheet" href="/css/style.css?v=3">
-  <link rel="stylesheet" href="/css/content-manager.css?v=3">
+  <link rel="stylesheet" href="/css/content-manager.css?v=4">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
 </head>
 <body>
@@ -306,14 +306,19 @@
         <!-- TXT Validation Feedback -->
         <div class="cm-txt-validation" id="txtValidation" style="display:none;"></div>
 
-        <!-- Text Content -->
-        <div class="cm-text-section">
-          <div class="cm-text-mode-toggle">
-            <button class="cm-text-mode active" data-mode="structured" id="modeStructured">Structured</button>
-            <button class="cm-text-mode" data-mode="raw" id="modeRaw">Raw Text</button>
+        <!-- Text Content - Dual Panel -->
+        <div class="cm-text-dual">
+          <!-- Raw Text (priority) -->
+          <div class="cm-text-panel cm-text-panel-raw">
+            <div class="cm-text-panel-header">
+              <label>Raw Text</label>
+              <button type="button" class="cm-btn-template" id="btnFillTemplate">Fill Template</button>
+            </div>
+            <textarea id="inputRawText" rows="10" placeholder="Hook: your hook here&#10;Caption: your caption here&#10;Hashtags: #tag1 #tag2"></textarea>
           </div>
-
-          <div id="structuredFields">
+          <!-- Structured (auto-synced) -->
+          <div class="cm-text-panel cm-text-panel-structured">
+            <div class="cm-text-panel-header"><label>Structured</label></div>
             <div class="cm-form-group">
               <label>Hook</label>
               <input type="text" id="inputHook" placeholder="Opening hook text">
@@ -327,18 +332,11 @@
               <input type="text" id="inputHashtags" placeholder="#viral #fyp #trending">
             </div>
           </div>
+        </div>
 
-          <div id="rawFields" style="display:none;">
-            <div class="cm-form-group">
-              <label>Content Text</label>
-              <textarea id="inputRawText" rows="8" placeholder="Paste full text content here"></textarea>
-            </div>
-          </div>
-
-          <div class="cm-form-group">
-            <label>Notes (internal)</label>
-            <input type="text" id="inputNotes" placeholder="Internal notes">
-          </div>
+        <div class="cm-form-group" style="margin-top:8px;">
+          <label>Notes (internal)</label>
+          <input type="text" id="inputNotes" placeholder="Internal notes">
         </div>
 
         <!-- Upload Progress -->

@@ -71,9 +71,15 @@ class ContentManagerApp {
     // Batch upload zone
     this.setupBatchDropzone();
 
-    // Text mode toggle
-    document.getElementById('modeStructured').addEventListener('click', () => this.setTextMode('structured'));
-    document.getElementById('modeRaw').addEventListener('click', () => this.setTextMode('raw'));
+    // Live two-way sync between raw text and structured fields
+    this._syncing = false;
+    document.getElementById('inputRawText').addEventListener('input', () => this.syncRawToStructured());
+    document.getElementById('inputHook').addEventListener('input', () => this.syncStructuredToRaw());
+    document.getElementById('inputCaption').addEventListener('input', () => this.syncStructuredToRaw());
+    document.getElementById('inputHashtags').addEventListener('input', () => this.syncStructuredToRaw());
+
+    // Fill template button
+    document.getElementById('btnFillTemplate').addEventListener('click', () => this.fillTemplate());
 
     // Content settings
     document.getElementById('btnContentSettings').addEventListener('click', () => this.openContentSettings());
@@ -191,6 +197,76 @@ class ContentManagerApp {
     `;
   }
 
+  // === Text Sync ===
+
+  fillTemplate() {
+    const raw = document.getElementById('inputRawText');
+    const current = raw.value.trim();
+    if (current && !confirm('This will replace current raw text with the template. Continue?')) return;
+    raw.value = 'Hook: \nCaption: \nHashtags: ';
+    raw.focus();
+    raw.setSelectionRange(6, 6); // cursor after "Hook: "
+    this.syncRawToStructured();
+  }
+
+  syncRawToStructured() {
+    if (this._syncing) return;
+    this._syncing = true;
+
+    const text = document.getElementById('inputRawText').value;
+    const parsed = this._parseRawText(text);
+
+    document.getElementById('inputHook').value = parsed.hook;
+    document.getElementById('inputCaption').value = parsed.caption;
+    document.getElementById('inputHashtags').value = parsed.hashtags;
+
+    this._syncing = false;
+  }
+
+  syncStructuredToRaw() {
+    if (this._syncing) return;
+    this._syncing = true;
+
+    const hook = document.getElementById('inputHook').value;
+    const caption = document.getElementById('inputCaption').value;
+    const hashtags = document.getElementById('inputHashtags').value;
+
+    const parts = [];
+    parts.push(`Hook: ${hook}`);
+    parts.push(`Caption: ${caption}`);
+    parts.push(`Hashtags: ${hashtags}`);
+    document.getElementById('inputRawText').value = parts.join('\n');
+
+    this._syncing = false;
+  }
+
+  _parseRawText(text) {
+    const result = { hook: '', caption: '', hashtags: '' };
+    const labelPattern = /^(hook|caption|hashtags?)\s*[:：]\s*/i;
+    let currentField = null;
+    let currentValue = [];
+    const fieldMap = {};
+
+    for (const line of text.split('\n')) {
+      const match = line.match(labelPattern);
+      if (match) {
+        if (currentField) fieldMap[currentField] = currentValue.join('\n').trim();
+        const raw = match[1].toLowerCase();
+        currentField = raw.startsWith('hashtag') ? 'hashtags' : raw;
+        currentValue = [line.replace(labelPattern, '')];
+      } else if (currentField) {
+        currentValue.push(line);
+      }
+    }
+    if (currentField) fieldMap[currentField] = currentValue.join('\n').trim();
+
+    if ('hook' in fieldMap) result.hook = fieldMap.hook;
+    if ('caption' in fieldMap) result.caption = fieldMap.caption;
+    if ('hashtags' in fieldMap) result.hashtags = fieldMap.hashtags;
+
+    return result;
+  }
+
   // === Batch Upload ===
 
   setupBatchDropzone() {
@@ -288,14 +364,7 @@ class ContentManagerApp {
     }
   }
 
-  // === Text Mode & TXT Validation ===
-
-  setTextMode(mode) {
-    document.getElementById('modeStructured').classList.toggle('active', mode === 'structured');
-    document.getElementById('modeRaw').classList.toggle('active', mode === 'raw');
-    document.getElementById('structuredFields').style.display = mode === 'structured' ? 'block' : 'none';
-    document.getElementById('rawFields').style.display = mode === 'raw' ? 'block' : 'none';
-  }
+  // === TXT Validation ===
 
   readTxtFile(file) {
     const reader = new FileReader();
@@ -754,7 +823,6 @@ class ContentManagerApp {
       document.getElementById(id).value = '';
     });
     document.getElementById('uploadProgress').style.display = 'none';
-    this.setTextMode('structured');
     this.openModal('uploadPostModal');
   }
 
@@ -853,7 +921,7 @@ class ContentManagerApp {
       const confirmBody = {
         content_id: this.currentContentId,
         postNumber,
-        text_mode: document.getElementById('modeStructured').classList.contains('active') ? 'structured' : 'raw',
+        text_mode: 'structured',
         hook: document.getElementById('inputHook').value,
         caption: document.getElementById('inputCaption').value,
         hashtags: document.getElementById('inputHashtags').value,
