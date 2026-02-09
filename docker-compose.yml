@@ -23,8 +23,7 @@ services:
     restart: unless-stopped
     volumes:
       - mongo-data:/data/db
-    ports:
-      - "27018:27017"
+    # No external port needed - accessed internally via Docker network
 
 volumes:
   mongo-data:
