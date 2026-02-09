@@ -1,0 +1,30 @@
+services:
+  app:
+    build: .
+    container_name: drive-clone
+    restart: unless-stopped
+    ports:
+      - "6666:6666"
+    environment:
+      - NODE_ENV=production
+      - PORT=6666
+      - MONGODB_URI=mongodb://mongo:27017/drive-clone
+      - SESSION_SECRET=drive-clone-super-secret-key-2026-random
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=admin123456
+    depends_on:
+      - mongo
+    volumes:
+      - ./temp_uploads:/app/temp_uploads
+
+  mongo:
+    image: mongo:7
+    container_name: drive-clone-mongo
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - "27018:27017"
+
+volumes:
+  mongo-data:
