@@ -185,6 +185,27 @@ class ContentManagerApp {
     document.getElementById('modeRaw').classList.toggle('active', mode === 'raw');
     document.getElementById('structuredFields').style.display = mode === 'structured' ? '' : 'none';
     document.getElementById('rawFields').style.display = mode === 'raw' ? '' : 'none';
+
+    if (mode === 'raw') {
+      // Generate template from structured fields
+      const hook = document.getElementById('inputHook').value;
+      const caption = document.getElementById('inputCaption').value;
+      const hashtags = document.getElementById('inputHashtags').value;
+      const parts = [];
+      parts.push(`Hook: ${hook}`);
+      parts.push(`Caption: ${caption}`);
+      parts.push(`Hashtags: ${hashtags}`);
+      document.getElementById('inputRawText').value = parts.join('\n\n');
+    } else {
+      // Parse raw text back into structured fields
+      const rawText = document.getElementById('inputRawText').value;
+      const hookMatch = rawText.match(/Hook:\s*([\s\S]*?)(?:\n\nCaption:|\n\nHashtags:|$)/);
+      const captionMatch = rawText.match(/Caption:\s*([\s\S]*?)(?:\n\nHashtags:|$)/);
+      const hashtagsMatch = rawText.match(/Hashtags:\s*([\s\S]*?)$/);
+      if (hookMatch) document.getElementById('inputHook').value = hookMatch[1].trim();
+      if (captionMatch) document.getElementById('inputCaption').value = captionMatch[1].trim();
+      if (hashtagsMatch) document.getElementById('inputHashtags').value = hashtagsMatch[1].trim();
+    }
   }
 
   setupViewerSwipe() {
@@ -572,26 +593,48 @@ class ContentManagerApp {
 
     // Show progress
     document.getElementById('uploadProgress').style.display = '';
-    document.getElementById('uploadProgressText').textContent = 'Uploading...';
-    document.getElementById('uploadProgressFill').style.width = '0';
+    document.getElementById('uploadProgressText').textContent = 'Uploading... 0%';
+    document.getElementById('uploadProgressFill').style.width = '0%';
 
     try {
       const xhr = new XMLHttpRequest();
+      xhr.timeout = 30 * 60 * 1000; // 30 minutes for large files
+
       xhr.upload.addEventListener('progress', (e) => {
         if (e.lengthComputable) {
           const pct = Math.round((e.loaded / e.total) * 100);
           document.getElementById('uploadProgressFill').style.width = pct + '%';
-          document.getElementById('uploadProgressText').textContent = `Uploading... ${pct}%`;
+          document.getElementById('uploadProgressText').textContent =
+            pct < 100 ? `Uploading... ${pct}%` : 'Processing...';
         }
       });
 
       const result = await new Promise((resolve, reject) => {
         xhr.addEventListener('load', () => {
-          if (xhr.status === 200) resolve(JSON.parse(xhr.responseText));
-          else reject(new Error(xhr.responseText));
+          console.log('[CM] Upload response:', xhr.status, xhr.responseText.substring(0, 200));
+          try {
+            const data = JSON.parse(xhr.responseText);
+            if (xhr.status === 200) resolve(data);
+            else reject(new Error(data.error || `Server error (${xhr.status})`));
+          } catch (e) {
+            reject(new Error(`Invalid response (${xhr.status}): ${xhr.responseText.substring(0, 100)}`));
+          }
         });
-        xhr.addEventListener('error', () => reject(new Error('Network error')));
+        xhr.addEventListener('error', (e) => {
+          console.error('[CM] Upload network error:', e);
+          reject(new Error('Network error - check your connection'));
+        });
+        xhr.addEventListener('timeout', () => {
+          console.error('[CM] Upload timeout');
+          reject(new Error('Upload timed out'));
+        });
+        xhr.addEventListener('abort', () => {
+          console.error('[CM] Upload aborted');
+          reject(new Error('Upload was cancelled'));
+        });
         xhr.open('POST', '/api/video-posts');
+        xhr.withCredentials = true;
+        console.log('[CM] Starting upload to /api/video-posts, size:', formData.get('video')?.size || 0);
         xhr.send(formData);
       });
 
@@ -604,6 +647,7 @@ class ContentManagerApp {
         this.showToast(result.error || 'Upload failed', 'error');
       }
     } catch (error) {
+      console.error('[CM] Upload failed:', error);
       this.showToast('Upload failed: ' + error.message, 'error');
     } finally {
       document.getElementById('uploadProgress').style.display = 'none';

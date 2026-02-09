@@ -101,7 +101,18 @@ router.get('/api/video-posts/:id', isAuthenticated, async (req, res) => {
 });
 
 // Upload new video post
-router.post('/api/video-posts', isAuthenticated, uploadFields, async (req, res) => {
+router.post('/api/video-posts', isAuthenticated, (req, res, next) => {
+  uploadFields(req, res, (err) => {
+    if (err) {
+      console.error('Multer upload error:', err);
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({ error: 'File too large (max 500MB)' });
+      }
+      return res.status(400).json({ error: 'Upload error: ' + err.message });
+    }
+    next();
+  });
+}, async (req, res) => {
   const tempFiles = [];
   try {
     if (!s3Service.isS3Configured()) {
@@ -115,7 +126,17 @@ router.post('/api/video-posts', isAuthenticated, uploadFields, async (req, res) 
     if (access.error) return res.status(access.status).json({ error: access.error });
 
     const userId = req.session.userId;
-    const s3Prefix = req.session.s3Prefix;
+    let s3Prefix = req.session.s3Prefix;
+
+    // Ensure s3Prefix exists
+    if (!s3Prefix) {
+      const user = await User.findById(userId);
+      if (!user || !user.s3Prefix) {
+        return res.status(500).json({ error: 'User storage prefix not configured' });
+      }
+      s3Prefix = user.s3Prefix;
+      req.session.s3Prefix = s3Prefix;
+    }
 
     // Get next post number
     const lastPost = await VideoPost.findOne({ content_id }).sort({ post_number: -1 });
