@@ -776,49 +776,50 @@
 /* Right sidebar actions (TikTok-style) */
 .cm-v-sidebar {
   position: absolute;
-  right: 12px;
+  right: 10px;
   top: 50%;
   transform: translateY(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 6px;
   z-index: 10;
 }
 .cm-v-action {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  gap: 3px;
   background: rgba(255,255,255,0.12);
   border: none;
   color: #fff;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
+  width: 52px;
+  padding: 8px 0 5px;
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s;
-  backdrop-filter: blur(4px);
-  padding: 0;
-  position: relative;
+  backdrop-filter: blur(6px);
 }
 .cm-v-action svg {
-  margin-top: 14px;
+  flex-shrink: 0;
 }
 .cm-v-action span {
-  position: absolute;
-  bottom: -16px;
-  font-size: 10px;
+  font-size: 9px;
+  line-height: 1;
   white-space: nowrap;
-  color: rgba(255,255,255,0.8);
+  color: rgba(255,255,255,0.85);
+  letter-spacing: 0.3px;
 }
-.cm-v-action:hover { background: rgba(255,255,255,0.25); transform: scale(1.1); }
-.cm-v-action-danger:hover { background: rgba(254,44,85,0.6); }
+.cm-v-action:hover { background: rgba(255,255,255,0.25); }
+.cm-v-action:active { transform: scale(0.93); }
+.cm-v-action-danger { background: rgba(254,44,85,0.25); }
+.cm-v-action-danger:hover { background: rgba(254,44,85,0.5); }
 
 /* Bottom overlay */
 .cm-v-bottom {
   position: absolute;
-  bottom: 0; left: 0; right: 70px;
+  bottom: 0; left: 0; right: 72px;
   padding: 16px 16px 12px;
   background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
   z-index: 10;
@@ -901,7 +902,7 @@
   cursor: pointer;
 }
 .cm-v-nav-prev { left: 0; }
-.cm-v-nav-next { right: 70px; }
+.cm-v-nav-next { right: 72px; }
 
 /* Collab Section */
 .cm-collab-section { margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 16px; }
@@ -1032,8 +1033,8 @@
 
 /* Tablet */
 @media (max-width: 1024px) {
-  .cm-v-sidebar { right: 8px; gap: 12px; }
-  .cm-v-action { width: 44px; height: 44px; }
+  .cm-v-sidebar { right: 8px; gap: 5px; }
+  .cm-v-action { width: 48px; padding: 7px 0 4px; }
 }
 
 /* Mobile */
@@ -1051,9 +1052,10 @@
     gap: 8px;
   }
 
-  .cm-v-sidebar { right: 6px; gap: 10px; }
-  .cm-v-action { width: 40px; height: 40px; }
-  .cm-v-action span { font-size: 9px; }
+  .cm-v-sidebar { right: 6px; gap: 4px; }
+  .cm-v-action { width: 44px; padding: 6px 0 3px; border-radius: 10px; }
+  .cm-v-action svg { width: 16px; height: 16px; }
+  .cm-v-action span { font-size: 8px; }
   .cm-v-bottom { right: 56px; padding: 12px; }
 
   .cm-upload-grid { grid-template-columns: 1fr 1fr; }
@@ -1073,9 +1075,9 @@
 
   .cm-header-title { font-size: 14px; }
 
-  .cm-v-bottom { right: 50px; }
-  .cm-v-hook { font-size: 14px; }
-  .cm-v-caption { font-size: 12px; -webkit-line-clamp: 2; }
+  .cm-v-bottom { right: 52px; }
+  .cm-v-hook { font-size: 13px; }
+  .cm-v-caption { font-size: 11px; -webkit-line-clamp: 2; }
 }
 
 /* Touch optimization */
