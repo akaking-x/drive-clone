@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Drive Clone">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#4285f4">
+  <meta name="format-detection" content="telephone=no">
+  <title>Admin Panel - Drive Clone</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📁</text></svg>">
+</head>
+<body>
+  <div class="admin-container">
+    <header class="admin-header">
+      <div>
+        <h1>Admin Panel</h1>
+        <p style="color: var(--text-secondary); margin-top: 4px;">Manage storage and users</p>
+      </div>
+      <div style="display: flex; gap: 12px;">
+        <a href="/drive" class="btn btn-secondary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
+          </svg>
+          My Drive
+        </a>
+        <button class="btn btn-secondary" id="btnLogout">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          Logout
+        </button>
+      </div>
+    </header>
+
+    <!-- S3 Configuration -->
+    <section class="admin-section">
+      <h2>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 8px;">
+          <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/>
+        </svg>
+        S3 Storage Configuration
+      </h2>
+
+      <div id="s3Status" class="alert alert-warning" style="display: none;"></div>
+
+      <form id="s3ConfigForm">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
+          <div class="form-group">
+            <label for="providerName">Provider Name</label>
+            <input type="text" id="providerName" placeholder="e.g., MinIO, Backblaze B2, AWS S3">
+          </div>
+
+          <div class="form-group">
+            <label for="endpoint">Endpoint URL *</label>
+            <input type="url" id="endpoint" placeholder="https://s3.example.com" required>
+          </div>
+
+          <div class="form-group">
+            <label for="bucket">Bucket Name *</label>
+            <input type="text" id="bucket" placeholder="my-bucket" required>
+          </div>
+
+          <div class="form-group">
+            <label for="region">Region</label>
+            <input type="text" id="region" placeholder="us-east-1" value="us-east-1">
+          </div>
+
+          <div class="form-group">
+            <label for="accessKey">Access Key *</label>
+            <input type="text" id="accessKey" placeholder="Access Key ID" required>
+          </div>
+
+          <div class="form-group">
+            <label for="secretKey">Secret Key *</label>
+            <input type="password" id="secretKey" placeholder="Secret Access Key" required>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 16px;">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" id="forcePathStyle" checked style="width: auto;">
+            Force Path Style (required for most S3-compatible providers)
+          </label>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="margin-top: 16px;">
+          Save Configuration
+        </button>
+      </form>
+    </section>
+
+    <!-- Change Admin Password -->
+    <section class="admin-section">
+      <h2>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 8px;">
+          <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+        </svg>
+        Change Admin Password
+      </h2>
+
+      <form id="changePasswordForm" style="max-width: 400px;">
+        <div class="form-group">
+          <label for="currentPassword">Current Password *</label>
+          <input type="password" id="currentPassword" placeholder="Enter current password" required>
+        </div>
+
+        <div class="form-group">
+          <label for="newPassword">New Password *</label>
+          <input type="password" id="newPassword" placeholder="Enter new password (min 6 characters)" required minlength="6">
+        </div>
+
+        <div class="form-group">
+          <label for="confirmNewPassword">Confirm New Password *</label>
+          <input type="password" id="confirmNewPassword" placeholder="Confirm new password" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+            <polyline points="7 3 7 8 15 8"></polyline>
+          </svg>
+          Change Password
+        </button>
+      </form>
+    </section>
+
+    <!-- User Management -->
+    <section class="admin-section">
+      <h2>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 8px;">
+          <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+        </svg>
+        User Management
+      </h2>
+
+      <div style="margin-bottom: 20px;">
+        <button class="btn btn-primary" id="btnCreateUser">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Create User
+        </button>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Storage Used</th>
+              <th>Storage Limit</th>
+              <th>Created</th>
+              <th>Last Login</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="usersTable">
+            <tr>
+              <td colspan="6" style="text-align: center; padding: 40px;">Loading users...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- Create User Modal -->
+  <div class="modal-overlay" id="createUserModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Create New User</h2>
+        <button class="modal-close" id="closeCreateUserModal">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="newUsername">Username *</label>
+          <input type="text" id="newUsername" placeholder="Enter username" required>
+        </div>
+        <div class="form-group">
+          <label for="newStorageLimit">Storage Limit (GB)</label>
+          <input type="number" id="newStorageLimit" placeholder="5" value="5" min="1">
+        </div>
+        <p style="font-size: 14px; color: var(--text-secondary); margin-top: 8px;">
+          A random 12-character password will be generated automatically.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancelCreateUser">Cancel</button>
+        <button class="btn btn-primary" id="confirmCreateUser">Create User</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Created Modal -->
+  <div class="modal-overlay" id="userCreatedModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>User Created Successfully</h2>
+        <button class="modal-close" id="closeUserCreatedModal">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-warning">
+          Please save this password now. It will not be shown again!
+        </div>
+        <div class="form-group">
+          <label>Username</label>
+          <div class="password-display">
+            <code id="createdUsername"></code>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <div class="password-display">
+            <code id="createdPassword"></code>
+            <button class="btn btn-icon" id="copyPassword" title="Copy password">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="closeUserCreatedBtn">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reset Password Modal -->
+  <div class="modal-overlay" id="resetPasswordModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Password Reset</h2>
+        <button class="modal-close" id="closeResetPasswordModal">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-warning">
+          Please save this new password. It will not be shown again!
+        </div>
+        <div class="form-group">
+          <label>New Password</label>
+          <div class="password-display">
+            <code id="resetPassword"></code>
+            <button class="btn btn-icon" id="copyResetPassword" title="Copy password">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="closeResetPasswordBtn">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    // Admin Panel JavaScript
+    class AdminPanel {
+      constructor() {
+        this.init();
+      }
+
+      async init() {
+        await this.checkAuth();
+        this.bindEvents();
+        this.loadS3Config();
+        this.loadUsers();
+      }
+
+      async checkAuth() {
+        try {
+          const response = await fetch('/api/auth/me');
+          const data = await response.json();
+
+          if (!response.ok || !data.isAdmin) {
+            window.location.href = '/login';
+          }
+        } catch (error) {
+          window.location.href = '/login';
+        }
+      }
+
+      bindEvents() {
+        // Logout
+        document.getElementById('btnLogout').addEventListener('click', async () => {
+          await fetch('/api/auth/logout', { method: 'POST' });
+          window.location.href = '/login';
+        });
+
+        // S3 Config form
+        document.getElementById('s3ConfigForm').addEventListener('submit', (e) => {
+          e.preventDefault();
+          this.saveS3Config();
+        });
+
+        // Change password form
+        document.getElementById('changePasswordForm').addEventListener('submit', (e) => {
+          e.preventDefault();
+          this.changePassword();
+        });
+
+        // Create user
+        document.getElementById('btnCreateUser').addEventListener('click', () => {
+          this.openModal('createUserModal');
+          document.getElementById('newUsername').value = '';
+          document.getElementById('newStorageLimit').value = '5';
+        });
+
+        document.getElementById('closeCreateUserModal').addEventListener('click', () => {
+          this.closeModal('createUserModal');
+        });
+        document.getElementById('cancelCreateUser').addEventListener('click', () => {
+          this.closeModal('createUserModal');
+        });
+        document.getElementById('confirmCreateUser').addEventListener('click', () => {
+          this.createUser();
+        });
+
+        // User created modal
+        document.getElementById('closeUserCreatedModal').addEventListener('click', () => {
+          this.closeModal('userCreatedModal');
+        });
+        document.getElementById('closeUserCreatedBtn').addEventListener('click', () => {
+          this.closeModal('userCreatedModal');
+        });
+        document.getElementById('copyPassword').addEventListener('click', () => {
+          this.copyToClipboard(document.getElementById('createdPassword').textContent);
+        });
+
+        // Reset password modal
+        document.getElementById('closeResetPasswordModal').addEventListener('click', () => {
+          this.closeModal('resetPasswordModal');
+        });
+        document.getElementById('closeResetPasswordBtn').addEventListener('click', () => {
+          this.closeModal('resetPasswordModal');
+        });
+        document.getElementById('copyResetPassword').addEventListener('click', () => {
+          this.copyToClipboard(document.getElementById('resetPassword').textContent);
+        });
+
+        // Close modals on overlay click
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+          overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+              overlay.classList.remove('active');
+            }
+          });
+        });
+      }
+
+      async loadS3Config() {
+        try {
+          const response = await fetch('/api/admin/s3-config');
+          const data = await response.json();
+
+          const statusEl = document.getElementById('s3Status');
+
+          if (data.configured) {
+            document.getElementById('endpoint').value = data.config.endpoint || '';
+            document.getElementById('bucket').value = data.config.bucket || '';
+            document.getElementById('region').value = data.config.region || 'us-east-1';
+            document.getElementById('providerName').value = data.config.providerName || '';
+            document.getElementById('forcePathStyle').checked = data.config.forcePathStyle !== false;
+
+            statusEl.className = 'alert alert-success';
+            statusEl.textContent = `S3 storage is configured (${data.config.providerName || 'Custom S3'})`;
+            statusEl.style.display = 'block';
+          } else {
+            statusEl.className = 'alert alert-warning';
+            statusEl.textContent = 'S3 storage is not configured. Please configure it below.';
+            statusEl.style.display = 'block';
+          }
+        } catch (error) {
+          this.showToast('Failed to load S3 configuration', 'error');
+        }
+      }
+
+      async saveS3Config() {
+        const config = {
+          providerName: document.getElementById('providerName').value,
+          endpoint: document.getElementById('endpoint').value,
+          bucket: document.getElementById('bucket').value,
+          region: document.getElementById('region').value,
+          accessKey: document.getElementById('accessKey').value,
+          secretKey: document.getElementById('secretKey').value,
+          forcePathStyle: document.getElementById('forcePathStyle').checked
+        };
+
+        try {
+          const response = await fetch('/api/admin/s3-config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config)
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            this.showToast('S3 configuration saved successfully', 'success');
+            this.loadS3Config();
+            // Clear sensitive fields
+            document.getElementById('accessKey').value = '';
+            document.getElementById('secretKey').value = '';
+          } else {
+            this.showToast(data.error || 'Failed to save configuration', 'error');
+          }
+        } catch (error) {
+          this.showToast('Connection error', 'error');
+        }
+      }
+
+      async changePassword() {
+        const currentPassword = document.getElementById('currentPassword').value;
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+
+        if (!currentPassword || !newPassword || !confirmNewPassword) {
+          this.showToast('All fields are required', 'error');
+          return;
+        }
+
+        if (newPassword !== confirmNewPassword) {
+          this.showToast('New passwords do not match', 'error');
+          return;
+        }
+
+        if (newPassword.length < 6) {
+          this.showToast('Password must be at least 6 characters', 'error');
+          return;
+        }
+
+        try {
+          const response = await fetch('/api/admin/change-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              currentPassword,
+              newPassword,
+              confirmPassword: confirmNewPassword
+            })
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            this.showToast('Password changed successfully', 'success');
+            // Clear form
+            document.getElementById('currentPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmNewPassword').value = '';
+          } else {
+            this.showToast(data.error || 'Failed to change password', 'error');
+          }
+        } catch (error) {
+          this.showToast('Connection error', 'error');
+        }
+      }
+
+      async loadUsers() {
+        try {
+          const response = await fetch('/api/admin/users');
+          const users = await response.json();
+
+          const tbody = document.getElementById('usersTable');
+
+          if (users.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px;">No users found</td></tr>';
+            return;
+          }
+
+          tbody.innerHTML = users.map(user => `
+            <tr>
+              <td>
+                <strong>${this.escapeHtml(user.username)}</strong>
+                ${user.isAdmin ? '<span class="badge badge-primary" style="margin-left: 8px;">Admin</span>' : ''}
+              </td>
+              <td>${this.formatSize(user.storageUsed)}</td>
+              <td>${this.formatSize(user.storageLimit)}</td>
+              <td>${this.formatDate(user.createdAt)}</td>
+              <td>${user.lastLogin ? this.formatDate(user.lastLogin) : 'Never'}</td>
+              <td>
+                ${!user.isAdmin ? `
+                  <button class="btn btn-sm btn-secondary" onclick="admin.resetPassword('${user._id}')">Reset Password</button>
+                  <button class="btn btn-sm btn-danger" onclick="admin.deleteUser('${user._id}', '${this.escapeHtml(user.username)}')">Delete</button>
+                ` : '-'}
+              </td>
+            </tr>
+          `).join('');
+        } catch (error) {
+          this.showToast('Failed to load users', 'error');
+        }
+      }
+
+      async createUser() {
+        const username = document.getElementById('newUsername').value.trim();
+        const storageLimit = parseInt(document.getElementById('newStorageLimit').value) || 5;
+
+        if (!username) {
+          this.showToast('Please enter a username', 'error');
+          return;
+        }
+
+        try {
+          const response = await fetch('/api/admin/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              username,
+              storageLimit: storageLimit * 1024 * 1024 * 1024 // Convert GB to bytes
+            })
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            this.closeModal('createUserModal');
+            document.getElementById('createdUsername').textContent = data.user.username;
+            document.getElementById('createdPassword').textContent = data.user.password;
+            this.openModal('userCreatedModal');
+            this.loadUsers();
+          } else {
+            this.showToast(data.error || 'Failed to create user', 'error');
+          }
+        } catch (error) {
+          this.showToast('Connection error', 'error');
+        }
+      }
+
+      async resetPassword(userId) {
+        if (!confirm('Are you sure you want to reset this user\'s password?')) {
+          return;
+        }
+
+        try {
+          const response = await fetch(`/api/admin/users/${userId}/reset-password`, {
+            method: 'POST'
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            document.getElementById('resetPassword').textContent = data.password;
+            this.openModal('resetPasswordModal');
+          } else {
+            this.showToast(data.error || 'Failed to reset password', 'error');
+          }
+        } catch (error) {
+          this.showToast('Connection error', 'error');
+        }
+      }
+
+      async deleteUser(userId, username) {
+        if (!confirm(`Are you sure you want to delete user "${username}"? This action cannot be undone.`)) {
+          return;
+        }
+
+        try {
+          const response = await fetch(`/api/admin/users/${userId}`, {
+            method: 'DELETE'
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            this.showToast('User deleted successfully', 'success');
+            this.loadUsers();
+          } else {
+            this.showToast(data.error || 'Failed to delete user', 'error');
+          }
+        } catch (error) {
+          this.showToast('Connection error', 'error');
+        }
+      }
+
+      openModal(modalId) {
+        document.getElementById(modalId).classList.add('active');
+      }
+
+      closeModal(modalId) {
+        document.getElementById(modalId).classList.remove('active');
+      }
+
+      copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+          this.showToast('Copied to clipboard', 'success');
+        }).catch(() => {
+          this.showToast('Failed to copy', 'error');
+        });
+      }
+
+      showToast(message, type = 'info') {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        container.appendChild(toast);
+
+        setTimeout(() => {
+          toast.remove();
+        }, 3000);
+      }
+
+      formatSize(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+      }
+
+      formatDate(dateString) {
+        return new Date(dateString).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+      }
+
+      escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+    }
+
+    // Initialize admin panel
+    const admin = new AdminPanel();
+  </script>
+</body>
+</html>

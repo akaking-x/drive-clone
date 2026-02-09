@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Drive Clone">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#667eea">
+  <meta name="format-detection" content="telephone=no">
+  <title>Login - Drive Clone</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📁</text></svg>">
+</head>
+<body class="login-page">
+  <div class="login-container">
+    <div class="login-box">
+      <div class="login-header">
+        <div class="logo">
+          <svg viewBox="0 0 24 24" width="48" height="48">
+            <path fill="#4285f4" d="M12 2L2 7l10 5 10-5-10-5z"/>
+            <path fill="#34a853" d="M2 17l10 5 10-5"/>
+            <path fill="#fbbc05" d="M2 7v10l10 5V12L2 7z"/>
+            <path fill="#ea4335" d="M22 7v10l-10 5V12l10-5z"/>
+          </svg>
+        </div>
+        <h1>Drive Clone</h1>
+        <p>Sign in to your account</p>
+      </div>
+
+      <form id="loginForm" class="login-form">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" required autocomplete="username" placeholder="Enter username">
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required autocomplete="current-password" placeholder="Enter password">
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <button type="submit" class="btn btn-primary btn-block">
+          <span class="btn-text">Sign In</span>
+          <span class="btn-loading" style="display: none;">
+            <span class="spinner"></span>
+          </span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const btn = e.target.querySelector('button[type="submit"]');
+      const btnText = btn.querySelector('.btn-text');
+      const btnLoading = btn.querySelector('.btn-loading');
+      const errorMessage = document.getElementById('errorMessage');
+
+      btnText.style.display = 'none';
+      btnLoading.style.display = 'inline-block';
+      btn.disabled = true;
+      errorMessage.textContent = '';
+
+      try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: document.getElementById('username').value,
+            password: document.getElementById('password').value
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          window.location.href = data.user.isAdmin ? '/admin' : '/drive';
+        } else {
+          errorMessage.textContent = data.error || 'Login failed';
+        }
+      } catch (error) {
+        errorMessage.textContent = 'Connection error. Please try again.';
+      } finally {
+        btnText.style.display = 'inline';
+        btnLoading.style.display = 'none';
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
