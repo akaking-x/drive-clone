@@ -98,10 +98,35 @@ class ContentManagerApp {
     document.getElementById('btnDownloadVideo').addEventListener('click', () => this.downloadVideo());
 
     // Click on video to toggle play/pause
-    document.getElementById('viewerVideo').addEventListener('click', (e) => {
+    const viewerVideo = document.getElementById('viewerVideo');
+    viewerVideo.addEventListener('click', (e) => {
       const video = e.target;
       if (video.paused) video.play(); else video.pause();
     });
+
+    // Video progress bar
+    viewerVideo.addEventListener('timeupdate', () => {
+      if (!viewerVideo.duration) return;
+      const pct = (viewerVideo.currentTime / viewerVideo.duration) * 100;
+      document.getElementById('viewerProgressFill').style.width = pct + '%';
+      document.getElementById('viewerProgressHandle').style.left = pct + '%';
+    });
+    const progressBar = document.getElementById('viewerProgress');
+    const seekVideo = (e) => {
+      if (!viewerVideo.duration) return;
+      const rect = progressBar.getBoundingClientRect();
+      const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      viewerVideo.currentTime = pct * viewerVideo.duration;
+    };
+    progressBar.addEventListener('click', seekVideo);
+    // Drag to seek
+    let seekDragging = false;
+    progressBar.addEventListener('mousedown', (e) => { seekDragging = true; progressBar.classList.add('active'); seekVideo(e); });
+    document.addEventListener('mousemove', (e) => { if (seekDragging) seekVideo(e); });
+    document.addEventListener('mouseup', () => { seekDragging = false; progressBar.classList.remove('active'); });
+    progressBar.addEventListener('touchstart', (e) => { seekDragging = true; progressBar.classList.add('active'); seekVideo(e.touches[0]); }, { passive: true });
+    progressBar.addEventListener('touchmove', (e) => { if (seekDragging) seekVideo(e.touches[0]); }, { passive: true });
+    progressBar.addEventListener('touchend', () => { seekDragging = false; progressBar.classList.remove('active'); });
 
     // Copy buttons
     document.getElementById('btnCopyHook').addEventListener('click', () => this.copyField('hook'));
@@ -611,6 +636,17 @@ class ContentManagerApp {
       empty.style.display = 'none';
       grid.innerHTML = this.posts.map((post, i) => this.renderPostCard(post, i)).join('');
 
+      // Bind card action buttons (copy/download on thumbnail)
+      grid.querySelectorAll('.cm-card-action').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const action = btn.dataset.cardAction;
+          const postId = btn.dataset.postId;
+          if (action === 'copyAll') this.copyAllByPostId(postId, btn);
+          if (action === 'download') this.downloadByPostId(postId, btn);
+        });
+      });
+
       // Bind card clicks
       grid.querySelectorAll('.cm-post-card').forEach(card => {
         card.addEventListener('click', () => this.openViewer(parseInt(card.dataset.index)));
@@ -660,6 +696,7 @@ class ContentManagerApp {
     const statusClass = `cm-status-${post.status}`;
     const hookText = post.text_content?.hook || post.text_content?.caption || '';
     const hasThumb = post.thumbnail && post.thumbnail.s3Key;
+    const hasVideo = post.video && post.video.s3Key;
 
     return `
       <div class="cm-post-card" data-index="${index}" data-id="${post._id}">
@@ -671,6 +708,14 @@ class ContentManagerApp {
                   <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
                 </div>`
             }
+          </div>
+          <div class="cm-post-card-actions">
+            <button class="cm-card-action" data-card-action="copyAll" data-post-id="${post._id}" title="Copy All">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            </button>
+            ${hasVideo ? `<button class="cm-card-action" data-card-action="download" data-post-id="${post._id}" title="Download">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            </button>` : ''}
           </div>
           <div class="cm-post-card-status ${statusClass}">${post.status}</div>
           <div class="cm-post-card-number">#${post.post_number}</div>
@@ -752,29 +797,46 @@ class ContentManagerApp {
   viewerNav(dir) {
     const newIndex = this.viewerIndex + dir;
     if (newIndex < 0 || newIndex >= this.posts.length) return;
+    if (this._navLock) return;
+    this._navLock = true;
     this.viewerIndex = newIndex;
 
-    // Pause current video
+    const viewer = document.querySelector('.cm-viewer');
     const video = document.getElementById('viewerVideo');
+
+    // Fade out
+    viewer.classList.add('cm-v-sliding');
     video.pause();
-    video.src = '';
 
-    this.updateViewer(this.posts[newIndex]);
+    setTimeout(() => {
+      video.src = '';
+      this.updateViewer(this.posts[newIndex]);
 
-    // Load new video
-    const post = this.posts[newIndex];
-    if (post.video && post.video.s3Key) {
-      video.style.display = '';
-      document.getElementById('viewerVideoPlaceholder').style.display = 'none';
-      fetch(`/api/video-posts/${post._id}/video`)
-        .then(r => r.json())
-        .then(data => {
-          if (data.url) { video.src = data.url; video.play().catch(() => {}); }
-        }).catch(() => {});
-    } else {
-      video.style.display = 'none';
-      document.getElementById('viewerVideoPlaceholder').style.display = '';
-    }
+      // Load new video
+      const post = this.posts[newIndex];
+      if (post.video && post.video.s3Key) {
+        video.style.display = '';
+        document.getElementById('viewerVideoPlaceholder').style.display = 'none';
+        fetch(`/api/video-posts/${post._id}/video`)
+          .then(r => r.json())
+          .then(data => {
+            if (data.url) {
+              video.src = data.url;
+              video.play().catch(() => {});
+            }
+            viewer.classList.remove('cm-v-sliding');
+            this._navLock = false;
+          }).catch(() => {
+            viewer.classList.remove('cm-v-sliding');
+            this._navLock = false;
+          });
+      } else {
+        video.style.display = 'none';
+        document.getElementById('viewerVideoPlaceholder').style.display = '';
+        viewer.classList.remove('cm-v-sliding');
+        this._navLock = false;
+      }
+    }, 150);
   }
 
   // === Actions ===
@@ -1021,13 +1083,13 @@ class ContentManagerApp {
     const post = this.posts[this.viewerIndex];
     if (!post) return;
     const tc = post.text_content || {};
-    let text = '';
+    let text = '', label = field;
     switch (field) {
       case 'hook': text = tc.hook || ''; break;
       case 'caption': text = tc.caption || ''; break;
-      case 'hashtags': text = tc.hashtags || ''; break;
+      case 'hashtags': text = tc.hashtags || ''; label = 'tags'; break;
     }
-    this.copyToClipboard(text);
+    this.copyToClipboard(text, null, label);
   }
 
   copyAll() {
@@ -1038,22 +1100,27 @@ class ContentManagerApp {
     if (tc.hook) parts.push(tc.hook);
     if (tc.caption) parts.push(tc.caption);
     if (tc.hashtags) parts.push(tc.hashtags);
-    this.copyToClipboard(parts.join('\n\n'));
+    this.copyToClipboard(parts.join('\n\n'), null, 'all');
   }
 
-  async copyToClipboard(text) {
+  async copyToClipboard(text, btnEl, label) {
     if (!text || text === '-') return;
     try {
       await navigator.clipboard.writeText(text);
-      this.showToast('Copied!', 'success');
     } catch (e) {
-      // Fallback
       const ta = document.createElement('textarea');
       ta.value = text;
+      ta.style.cssText = 'position:fixed;left:-9999px';
       document.body.appendChild(ta);
       ta.select();
       document.execCommand('copy');
       document.body.removeChild(ta);
+    }
+    // Show feedback
+    const isViewer = document.getElementById('viewerModal')?.classList.contains('active');
+    if (isViewer) {
+      this.showViewerFeedback(`Copied ${label || ''}!`);
+    } else {
       this.showToast('Copied!', 'success');
     }
   }
@@ -1410,22 +1477,63 @@ class ContentManagerApp {
   async downloadVideo() {
     const post = this.posts[this.viewerIndex];
     if (!post || !post.video?.s3Key) return;
+    this.showViewerFeedback('Downloading...');
+    await this._downloadPost(post);
+  }
+
+  async _downloadPost(post) {
     try {
       const res = await fetch(`/api/video-posts/${post._id}/video`);
       const data = await res.json();
-      if (data.url) {
-        const a = document.createElement('a');
-        a.href = data.url;
-        a.download = post.video.originalName || `video-${post.post_number}.mp4`;
-        a.target = '_blank';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        this.showToast('Downloading...', 'success');
-      }
+      if (!data.url) return;
+
+      // iOS Safari doesn't support <a download> for cross-origin
+      // Fetch as blob then create object URL
+      const videoRes = await fetch(data.url);
+      const blob = await videoRes.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = post.video.originalName || `video-${post.post_number}.mp4`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+      this.showViewerFeedback('Downloaded!');
     } catch(e) {
       this.showToast('Download failed', 'error');
     }
+  }
+
+  // Copy all from a card (by post ID)
+  copyAllByPostId(postId, btn) {
+    const post = this.posts.find(p => p._id === postId);
+    if (!post) return;
+    const tc = post.text_content || {};
+    const parts = [];
+    if (tc.hook) parts.push(tc.hook);
+    if (tc.caption) parts.push(tc.caption);
+    if (tc.hashtags) parts.push(tc.hashtags);
+    this.copyToClipboard(parts.join('\n\n'), btn);
+  }
+
+  // Download from a card (by post ID)
+  async downloadByPostId(postId, btn) {
+    const post = this.posts.find(p => p._id === postId);
+    if (!post || !post.video?.s3Key) return;
+    if (btn) { btn.style.opacity = '0.5'; btn.style.pointerEvents = 'none'; }
+    await this._downloadPost(post);
+    if (btn) { btn.style.opacity = ''; btn.style.pointerEvents = ''; }
+  }
+
+  // Viewer inline feedback (replaces toast for viewer actions)
+  showViewerFeedback(text) {
+    const el = document.getElementById('viewerFeedback');
+    if (!el) return;
+    el.textContent = text;
+    el.classList.remove('show');
+    void el.offsetWidth; // reflow
+    el.classList.add('show');
   }
 
   showToast(message, type = 'info') {

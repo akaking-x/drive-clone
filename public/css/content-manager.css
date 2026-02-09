@@ -816,12 +816,12 @@
 .cm-v-action-danger { background: rgba(254,44,85,0.25); }
 .cm-v-action-danger:hover { background: rgba(254,44,85,0.5); }
 
-/* Bottom overlay */
+/* Bottom overlay - full width gradient, content avoids sidebar */
 .cm-v-bottom {
   position: absolute;
-  bottom: 0; left: 0; right: 72px;
-  padding: 16px 16px 12px;
-  background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+  bottom: 0; left: 0; right: 0;
+  padding: 16px 80px 16px 16px;
+  background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.4) 60%, transparent 100%);
   z-index: 10;
   pointer-events: none;
   max-height: 45%;
@@ -902,7 +902,104 @@
   cursor: pointer;
 }
 .cm-v-nav-prev { left: 0; }
-.cm-v-nav-next { right: 72px; }
+.cm-v-nav-next { right: 64px; }
+
+/* Video progress bar */
+.cm-v-progress {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 3px;
+  background: rgba(255,255,255,0.2);
+  z-index: 15;
+  cursor: pointer;
+  transition: height 0.15s;
+}
+.cm-v-progress:hover,
+.cm-v-progress.active { height: 8px; }
+.cm-v-progress-fill {
+  height: 100%;
+  background: var(--cm-accent);
+  width: 0;
+  pointer-events: none;
+  border-radius: 0 2px 2px 0;
+}
+.cm-v-progress-handle {
+  position: absolute;
+  top: 50%; left: 0;
+  width: 14px; height: 14px;
+  background: #fff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 0.15s;
+  pointer-events: none;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+.cm-v-progress:hover .cm-v-progress-handle,
+.cm-v-progress.active .cm-v-progress-handle { opacity: 1; }
+
+/* Inline feedback overlay */
+.cm-v-feedback {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%) scale(0.8);
+  background: rgba(0,0,0,0.75);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 20;
+  pointer-events: none;
+  opacity: 0;
+  backdrop-filter: blur(8px);
+  white-space: nowrap;
+}
+.cm-v-feedback.show {
+  animation: cm-fb 0.8s ease forwards;
+}
+@keyframes cm-fb {
+  0% { opacity: 0; transform: translate(-50%,-50%) scale(0.8); }
+  15% { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+  70% { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%,-50%) scale(0.9); }
+}
+
+/* Smooth video transition */
+.cm-viewer video {
+  transition: opacity 0.15s ease;
+}
+.cm-viewer.cm-v-sliding video {
+  opacity: 0.3;
+}
+
+/* Post card overlay actions */
+.cm-post-card-actions {
+  position: absolute;
+  top: 6px; right: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  z-index: 3;
+}
+.cm-post-card:hover .cm-post-card-actions { opacity: 1; }
+.cm-card-action {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.6);
+  border: none;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: background 0.15s;
+}
+.cm-card-action:hover { background: rgba(0,0,0,0.85); }
+.cm-card-action:active { transform: scale(0.9); }
 
 /* Collab Section */
 .cm-collab-section { margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 16px; }
@@ -1056,7 +1153,7 @@
   .cm-v-action { width: 44px; padding: 6px 0 3px; border-radius: 10px; }
   .cm-v-action svg { width: 16px; height: 16px; }
   .cm-v-action span { font-size: 8px; }
-  .cm-v-bottom { right: 56px; padding: 12px; }
+  .cm-v-bottom { padding-right: 60px; padding-bottom: 14px; }
 
   .cm-upload-grid { grid-template-columns: 1fr 1fr; }
   .cm-upload-grid .cm-upload-zone:first-child { grid-column: 1 / -1; }
@@ -1075,7 +1172,7 @@
 
   .cm-header-title { font-size: 14px; }
 
-  .cm-v-bottom { right: 52px; }
+  .cm-v-bottom { padding-right: 54px; }
   .cm-v-hook { font-size: 13px; }
   .cm-v-caption { font-size: 11px; -webkit-line-clamp: 2; }
 }
@@ -1089,6 +1186,9 @@
   }
 
   .cm-post-card { -webkit-tap-highlight-color: transparent; }
+  .cm-post-card-actions { opacity: 1; }
+  .cm-card-action { width: 34px; height: 34px; }
+  .cm-v-progress { height: 4px; }
 }
 
 /* iOS safe area */

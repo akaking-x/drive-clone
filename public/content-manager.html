@@ -13,7 +13,7 @@
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.svg">
   <title>Content Manager - Drive Clone</title>
   <link rel="stylesheet" href="/css/style.css?v=4">
-  <link rel="stylesheet" href="/css/content-manager.css?v=7">
+  <link rel="stylesheet" href="/css/content-manager.css?v=8">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
 </head>
 <body>
@@ -428,9 +428,18 @@
         </div>
       </div>
 
+      <!-- Video progress bar -->
+      <div class="cm-v-progress" id="viewerProgress">
+        <div class="cm-v-progress-fill" id="viewerProgressFill"></div>
+        <div class="cm-v-progress-handle" id="viewerProgressHandle"></div>
+      </div>
+
       <!-- Swipe nav arrows (large touch zones) -->
       <div class="cm-v-nav-prev" id="btnViewerPrev"></div>
       <div class="cm-v-nav-next" id="btnViewerNext"></div>
+
+      <!-- Inline feedback -->
+      <div class="cm-v-feedback" id="viewerFeedback"></div>
     </div>
   </div>
 
@@ -551,6 +560,6 @@
   <!-- Toast Container -->
   <div class="toast-container" id="toastContainer"></div>
 
-  <script src="/js/content-manager.js?v=1"></script>
+  <script src="/js/content-manager.js?v=2"></script>
 </body>
 </html>
