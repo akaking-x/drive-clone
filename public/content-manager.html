@@ -357,95 +357,74 @@
   <!-- Viewer Modal (3-panel) -->
   <div class="cm-modal-overlay cm-viewer-overlay" id="viewerModal">
     <div class="cm-viewer">
-      <!-- Close -->
-      <button class="cm-viewer-close" id="btnViewerClose">&times;</button>
-
-      <!-- Left: Video -->
-      <div class="cm-viewer-video">
-        <video id="viewerVideo" controls loop playsinline></video>
-        <div class="cm-viewer-video-placeholder" id="viewerVideoPlaceholder">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-            <polygon points="5 3 19 12 5 21 5 3"></polygon>
-          </svg>
-          <span>No video</span>
-        </div>
+      <!-- Full screen video -->
+      <video id="viewerVideo" loop playsinline></video>
+      <div class="cm-viewer-video-placeholder" id="viewerVideoPlaceholder">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        <span>No video</span>
       </div>
 
-      <!-- Center: Thumbnail + Info -->
-      <div class="cm-viewer-info">
-        <div class="cm-viewer-thumb" id="viewerThumb">
-          <img id="viewerThumbImg" src="" alt="Thumbnail">
-          <div class="cm-viewer-thumb-placeholder" id="viewerThumbPlaceholder">No thumbnail</div>
+      <!-- Top overlay bar -->
+      <div class="cm-v-top">
+        <button class="cm-v-btn cm-v-close" id="btnViewerClose">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+        <div class="cm-v-meta">
+          <span class="cm-v-post-num" id="viewerPostNum">#1</span>
+          <span class="cm-v-status" id="viewerStatus">draft</span>
+          <span class="cm-v-counter" id="viewerCounter">1/1</span>
         </div>
-        <div class="cm-viewer-meta">
-          <div class="cm-viewer-post-num" id="viewerPostNum">#1</div>
-          <div class="cm-viewer-status" id="viewerStatus">draft</div>
-          <div class="cm-viewer-uploader" id="viewerUploader"></div>
-          <div class="cm-viewer-date" id="viewerDate"></div>
-        </div>
-        <div class="cm-viewer-notes" id="viewerNotes"></div>
+        <button class="cm-v-btn" id="btnDownloadVideo" title="Download video">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        </button>
       </div>
 
-      <!-- Right: Text Content + Actions -->
-      <div class="cm-viewer-text">
-        <div class="cm-viewer-text-block">
-          <label>Hook</label>
-          <div class="cm-viewer-text-content cm-copyable" id="viewerHook" data-field="hook">-</div>
-        </div>
-        <div class="cm-viewer-text-block">
-          <label>Caption</label>
-          <div class="cm-viewer-text-content cm-copyable" id="viewerCaption" data-field="caption">-</div>
-        </div>
-        <div class="cm-viewer-text-block">
-          <label>Hashtags</label>
-          <div class="cm-viewer-text-content cm-copyable" id="viewerHashtags" data-field="hashtags">-</div>
-        </div>
-        <div class="cm-viewer-text-block" id="viewerRawBlock" style="display:none;">
-          <label>Raw Text</label>
-          <div class="cm-viewer-text-content cm-copyable" id="viewerRawText" data-field="raw">-</div>
-        </div>
+      <!-- Right side action bar (TikTok-style) -->
+      <div class="cm-v-sidebar">
+        <button class="cm-v-action" id="btnCopyHook" title="Copy Hook (H)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          <span>Hook</span>
+        </button>
+        <button class="cm-v-action" id="btnCopyCaption" title="Copy Caption (C)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          <span>Caption</span>
+        </button>
+        <button class="cm-v-action" id="btnCopyTags" title="Copy Tags (T)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          <span>Tags</span>
+        </button>
+        <button class="cm-v-action" id="btnCopyAll" title="Copy All (A)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          <span>All</span>
+        </button>
+        <button class="cm-v-action cm-v-action-danger" id="btnDeletePost" title="Delete">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          <span>Delete</span>
+        </button>
+      </div>
 
-        <!-- Quick Actions -->
-        <div class="cm-viewer-actions">
-          <button class="cm-action-btn" id="btnCopyHook" title="Copy Hook (H)">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-            Hook
-          </button>
-          <button class="cm-action-btn" id="btnCopyCaption" title="Copy Caption (C)">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-            Caption
-          </button>
-          <button class="cm-action-btn" id="btnCopyTags" title="Copy Tags (T)">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-            Tags
-          </button>
-          <button class="cm-action-btn" id="btnCopyAll" title="Copy All (A)">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-            All
-          </button>
-        </div>
-
-        <!-- Status Actions -->
-        <div class="cm-viewer-status-actions">
-          <label>Change Status:</label>
-          <div class="cm-status-btns">
-            <button class="cm-status-btn" data-status="draft">Draft</button>
-            <button class="cm-status-btn" data-status="done">Done</button>
-            <button class="cm-status-btn" data-status="posted">Posted</button>
-            <button class="cm-status-btn" data-status="hidden">Hidden</button>
+      <!-- Bottom overlay: text content + status -->
+      <div class="cm-v-bottom">
+        <div class="cm-v-text-content">
+          <div class="cm-v-uploader" id="viewerUploader"></div>
+          <div class="cm-v-hook" id="viewerHook"></div>
+          <div class="cm-v-caption" id="viewerCaption"></div>
+          <div class="cm-v-hashtags" id="viewerHashtags"></div>
+          <div class="cm-v-raw" id="viewerRawBlock" style="display:none;">
+            <div id="viewerRawText"></div>
           </div>
         </div>
-
-        <!-- Nav -->
-        <div class="cm-viewer-nav">
-          <button class="cm-btn-secondary" id="btnViewerPrev">Prev</button>
-          <span class="cm-viewer-counter" id="viewerCounter">1/1</span>
-          <button class="cm-btn-secondary" id="btnViewerNext">Next</button>
+        <div class="cm-v-status-bar">
+          <button class="cm-status-btn" data-status="draft">Draft</button>
+          <button class="cm-status-btn" data-status="done">Done</button>
+          <button class="cm-status-btn" data-status="posted">Posted</button>
+          <button class="cm-status-btn" data-status="hidden">Hidden</button>
         </div>
-
-        <!-- Delete -->
-        <button class="cm-btn-danger cm-btn-sm" id="btnDeletePost" style="margin-top:12px;">Delete Post</button>
       </div>
+
+      <!-- Swipe nav arrows (large touch zones) -->
+      <div class="cm-v-nav-prev" id="btnViewerPrev"></div>
+      <div class="cm-v-nav-next" id="btnViewerNext"></div>
     </div>
   </div>
 

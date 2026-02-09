@@ -95,6 +95,13 @@ class ContentManagerApp {
     document.getElementById('btnViewerPrev').addEventListener('click', () => this.viewerNav(-1));
     document.getElementById('btnViewerNext').addEventListener('click', () => this.viewerNav(1));
     document.getElementById('btnDeletePost').addEventListener('click', () => this.deletePost());
+    document.getElementById('btnDownloadVideo').addEventListener('click', () => this.downloadVideo());
+
+    // Click on video to toggle play/pause
+    document.getElementById('viewerVideo').addEventListener('click', (e) => {
+      const video = e.target;
+      if (video.paused) video.play(); else video.pause();
+    });
 
     // Copy buttons
     document.getElementById('btnCopyHook').addEventListener('click', () => this.copyField('hook'));
@@ -138,7 +145,7 @@ class ContentManagerApp {
     });
     document.querySelectorAll('.cm-modal-overlay').forEach(overlay => {
       overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) overlay.classList.remove('active');
+        if (e.target === overlay) this.closeModal(overlay.id);
       });
     });
 
@@ -462,11 +469,22 @@ class ContentManagerApp {
   setupViewerSwipe() {
     const viewer = document.querySelector('.cm-viewer');
     if (!viewer) return;
-    let startX = 0;
-    viewer.addEventListener('touchstart', (e) => { startX = e.touches[0].clientX; }, { passive: true });
+    let startX = 0, startY = 0;
+    viewer.addEventListener('touchstart', (e) => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    }, { passive: true });
     viewer.addEventListener('touchend', (e) => {
-      const diff = e.changedTouches[0].clientX - startX;
-      if (Math.abs(diff) > 60) this.viewerNav(diff > 0 ? -1 : 1);
+      const dx = e.changedTouches[0].clientX - startX;
+      const dy = e.changedTouches[0].clientY - startY;
+      // Horizontal swipe for navigation (prioritize if horizontal > vertical)
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 60) {
+        this.viewerNav(dx > 0 ? -1 : 1);
+      }
+      // Vertical swipe down to close
+      else if (dy > 120) {
+        this.closeModal('viewerModal');
+      }
     }, { passive: true });
   }
 
@@ -692,28 +710,18 @@ class ContentManagerApp {
   }
 
   updateViewer(post) {
-    // Thumbnail
-    const hasThumb = post.thumbnail && post.thumbnail.s3Key;
-    document.getElementById('viewerThumbImg').style.display = hasThumb ? '' : 'none';
-    document.getElementById('viewerThumbPlaceholder').style.display = hasThumb ? 'none' : '';
-    if (hasThumb) {
-      document.getElementById('viewerThumbImg').src = `/api/video-posts/${post._id}/thumbnail`;
-    }
-
     // Meta
     document.getElementById('viewerPostNum').textContent = `#${post.post_number}`;
     const statusEl = document.getElementById('viewerStatus');
     statusEl.textContent = post.status;
-    statusEl.className = `cm-viewer-status cm-status-${post.status}`;
-    document.getElementById('viewerUploader').textContent = `by ${post.uploaded_by?.username || 'unknown'}`;
-    document.getElementById('viewerDate').textContent = new Date(post.createdAt).toLocaleDateString();
-    document.getElementById('viewerNotes').textContent = post.notes || 'No notes';
+    statusEl.className = `cm-v-status cm-status-${post.status}`;
+    document.getElementById('viewerUploader').textContent = `@${post.uploaded_by?.username || 'unknown'}`;
 
     // Text
     const tc = post.text_content || {};
-    document.getElementById('viewerHook').textContent = tc.hook || '-';
-    document.getElementById('viewerCaption').textContent = tc.caption || '-';
-    document.getElementById('viewerHashtags').textContent = tc.hashtags || '-';
+    document.getElementById('viewerHook').textContent = tc.hook || '';
+    document.getElementById('viewerCaption').textContent = tc.caption || '';
+    document.getElementById('viewerHashtags').textContent = tc.hashtags || '';
 
     if (tc.mode === 'raw' && tc.raw_text) {
       document.getElementById('viewerRawBlock').style.display = '';
@@ -722,18 +730,21 @@ class ContentManagerApp {
       document.getElementById('viewerRawBlock').style.display = 'none';
     }
 
-    // Status buttons
-    document.querySelectorAll('.cm-status-btn').forEach(btn => {
+    // Status buttons in viewer
+    document.querySelectorAll('#viewerModal .cm-status-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.status === post.status);
     });
 
     // Counter
     document.getElementById('viewerCounter').textContent = `${this.viewerIndex + 1}/${this.posts.length}`;
 
+    // Show/hide download button
+    document.getElementById('btnDownloadVideo').style.display = (post.video && post.video.s3Key) ? '' : 'none';
+
     // Show/hide edit actions based on permission
     const canEdit = this.isOwner || this.isEditor;
     document.getElementById('btnDeletePost').style.display = canEdit ? '' : 'none';
-    document.querySelectorAll('.cm-status-btn').forEach(btn => {
+    document.querySelectorAll('#viewerModal .cm-status-btn').forEach(btn => {
       btn.style.display = canEdit ? '' : 'none';
     });
   }
@@ -1382,9 +1393,39 @@ class ContentManagerApp {
   // === Utilities ===
 
   openModal(id) { document.getElementById(id).classList.add('active'); }
-  closeModal(id) { document.getElementById(id).classList.remove('active'); }
+  closeModal(id) {
+    document.getElementById(id).classList.remove('active');
+    if (id === 'viewerModal') this.stopViewerVideo();
+  }
   closeAllModals() {
     document.querySelectorAll('.cm-modal-overlay').forEach(m => m.classList.remove('active'));
+    this.stopViewerVideo();
+  }
+
+  stopViewerVideo() {
+    const video = document.getElementById('viewerVideo');
+    if (video) { video.pause(); video.src = ''; }
+  }
+
+  async downloadVideo() {
+    const post = this.posts[this.viewerIndex];
+    if (!post || !post.video?.s3Key) return;
+    try {
+      const res = await fetch(`/api/video-posts/${post._id}/video`);
+      const data = await res.json();
+      if (data.url) {
+        const a = document.createElement('a');
+        a.href = data.url;
+        a.download = post.video.originalName || `video-${post.post_number}.mp4`;
+        a.target = '_blank';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        this.showToast('Downloading...', 'success');
+      }
+    } catch(e) {
+      this.showToast('Download failed', 'error');
+    }
   }
 
   showToast(message, type = 'info') {
