@@ -206,10 +206,11 @@
   display: flex;
   align-items: center;
   padding: 0 20px;
-  gap: 12px;
+  gap: 10px;
   position: sticky;
   top: 0;
   z-index: 50;
+  overflow: hidden;
 }
 
 .cm-menu-toggle {
@@ -223,6 +224,7 @@
 
 .cm-header-title {
   flex: 1;
+  min-width: 0;
   font-size: 16px;
   font-weight: 600;
   white-space: nowrap;
@@ -874,23 +876,32 @@
 
 /* Status bar in viewer */
 .cm-v-status-bar {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+  display: inline-flex;
+  gap: 0;
+  background: rgba(0,0,0,0.5);
+  border-radius: 8px;
+  overflow: hidden;
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,0.12);
 }
 .cm-status-btn {
-  padding: 6px 14px;
-  border: 1px solid rgba(255,255,255,0.25);
-  background: rgba(0,0,0,0.4);
-  border-radius: 20px;
-  color: #fff;
-  font-size: 12px;
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.65);
+  font-size: 11px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
-  backdrop-filter: blur(4px);
+  transition: all 0.15s;
+  border-right: 1px solid rgba(255,255,255,0.08);
+  letter-spacing: 0.3px;
 }
-.cm-status-btn:hover { background: rgba(255,255,255,0.15); }
-.cm-status-btn.active { background: var(--cm-accent); border-color: var(--cm-accent); }
+.cm-status-btn:last-child { border-right: none; }
+.cm-status-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.cm-status-btn.active {
+  background: var(--cm-accent);
+  color: #fff;
+}
 
 /* Navigation touch zones */
 .cm-v-nav-prev, .cm-v-nav-next {
@@ -908,32 +919,31 @@
 .cm-v-progress {
   position: absolute;
   bottom: 0; left: 0; right: 0;
-  height: 3px;
-  background: rgba(255,255,255,0.2);
-  z-index: 15;
+  height: 4px;
+  background: rgba(255,255,255,0.25);
+  z-index: 30;
   cursor: pointer;
   transition: height 0.15s;
 }
 .cm-v-progress:hover,
-.cm-v-progress.active { height: 8px; }
+.cm-v-progress.active { height: 10px; }
 .cm-v-progress-fill {
   height: 100%;
   background: var(--cm-accent);
   width: 0;
   pointer-events: none;
-  border-radius: 0 2px 2px 0;
 }
 .cm-v-progress-handle {
   position: absolute;
   top: 50%; left: 0;
-  width: 14px; height: 14px;
+  width: 16px; height: 16px;
   background: #fff;
   border-radius: 50%;
   transform: translate(-50%, -50%);
   opacity: 0;
   transition: opacity 0.15s;
   pointer-events: none;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+  box-shadow: 0 1px 6px rgba(0,0,0,0.6);
 }
 .cm-v-progress:hover .cm-v-progress-handle,
 .cm-v-progress.active .cm-v-progress-handle { opacity: 1; }

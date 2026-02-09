@@ -732,6 +732,10 @@ class ContentManagerApp {
     const post = this.posts[index];
     if (!post) return;
 
+    // Reset progress bar
+    document.getElementById('viewerProgressFill').style.width = '0';
+    document.getElementById('viewerProgressHandle').style.left = '0';
+
     this.openModal('viewerModal');
     this.updateViewer(post);
 
@@ -800,6 +804,10 @@ class ContentManagerApp {
     if (this._navLock) return;
     this._navLock = true;
     this.viewerIndex = newIndex;
+
+    // Reset progress
+    document.getElementById('viewerProgressFill').style.width = '0';
+    document.getElementById('viewerProgressHandle').style.left = '0';
 
     const viewer = document.querySelector('.cm-viewer');
     const video = document.getElementById('viewerVideo');
@@ -1483,24 +1491,62 @@ class ContentManagerApp {
 
   async _downloadPost(post) {
     try {
-      const res = await fetch(`/api/video-posts/${post._id}/video`);
-      const data = await res.json();
-      if (!data.url) return;
+      const downloads = [];
 
-      // iOS Safari doesn't support <a download> for cross-origin
-      // Fetch as blob then create object URL
-      const videoRes = await fetch(data.url);
-      const blob = await videoRes.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = post.video.originalName || `video-${post.post_number}.mp4`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
-      this.showViewerFeedback('Downloaded!');
+      // Download video
+      if (post.video?.s3Key) {
+        const res = await fetch(`/api/video-posts/${post._id}/video`);
+        const data = await res.json();
+        if (data.url) downloads.push({ url: data.url, name: post.video.originalName || `video-${post.post_number}.mp4` });
+      }
+
+      // Download thumbnail
+      if (post.thumbnail?.s3Key) {
+        const res = await fetch(`/api/video-posts/${post._id}/thumbnail`);
+        const blob = await res.blob();
+        downloads.push({ blob, name: post.thumbnail.originalName || `thumb-${post.post_number}.jpg` });
+      }
+
+      for (const dl of downloads) {
+        const blob = dl.blob || await fetch(dl.url).then(r => r.blob());
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = dl.name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+      }
+
+      // Auto-copy hook + caption + tags
+      const tc = post.text_content || {};
+      const parts = [];
+      if (tc.hook) parts.push(tc.hook);
+      if (tc.caption) parts.push(tc.caption);
+      if (tc.hashtags) parts.push(tc.hashtags);
+      if (parts.length > 0) {
+        try {
+          await navigator.clipboard.writeText(parts.join('\n\n'));
+        } catch(e) {
+          const ta = document.createElement('textarea');
+          ta.value = parts.join('\n\n');
+          ta.style.cssText = 'position:fixed;left:-9999px';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+        }
+      }
+
+      const isViewer = document.getElementById('viewerModal')?.classList.contains('active');
+      if (isViewer) {
+        this.showViewerFeedback('Downloaded + Copied!');
+      } else {
+        this.showToast('Downloaded + Copied!', 'success');
+      }
     } catch(e) {
+      console.error('Download error:', e);
       this.showToast('Download failed', 'error');
     }
   }
