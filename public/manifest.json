@@ -1,0 +1,16 @@
+{
+  "name": "Content Manager",
+  "short_name": "ContentMgr",
+  "start_url": "/content-manager",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#000000",
+  "theme_color": "#fe2c55",
+  "icons": [
+    {
+      "src": "/icons/apple-touch-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
