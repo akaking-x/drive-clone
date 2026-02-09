@@ -9,6 +9,11 @@ const path = require('path');
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
 const fileRoutes = require('./routes/files');
+const contentRoutes = require('./routes/content');
+const videoPostRoutes = require('./routes/video-posts');
+const followRoutes = require('./routes/follows');
+const notificationRoutes = require('./routes/notifications');
+const adminContentRoutes = require('./routes/admin-content');
 const { initS3Client } = require('./services/s3');
 const User = require('./models/User');
 const { v4: uuidv4 } = require('uuid');
@@ -66,6 +71,11 @@ app.use(session(sessionConfig));
 app.use(authRoutes);
 app.use(adminRoutes);
 app.use(fileRoutes);
+app.use(contentRoutes);
+app.use(videoPostRoutes);
+app.use(followRoutes);
+app.use(notificationRoutes);
+app.use(adminContentRoutes);
 
 // Root redirect
 app.get('/', (req, res) => {
@@ -81,6 +91,14 @@ app.get('/drive', (req, res) => {
     return res.redirect('/login');
   }
   res.sendFile(path.join(__dirname, 'public', 'drive.html'));
+});
+
+// Content Manager page
+app.get('/content-manager', (req, res) => {
+  if (!req.session.userId) {
+    return res.redirect('/login');
+  }
+  res.sendFile(path.join(__dirname, 'public', 'content-manager.html'));
 });
 
 // Health check

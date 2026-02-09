@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Content Dashboard - Admin</title>
+  <link rel="stylesheet" href="/css/style.css?v=3">
+  <link rel="stylesheet" href="/css/admin-content.css?v=1">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="ac-container">
+    <!-- Header -->
+    <header class="ac-header">
+      <div class="ac-header-left">
+        <a href="/content-manager" class="ac-back-link">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          Back
+        </a>
+        <h1>Content Dashboard</h1>
+      </div>
+      <div class="ac-header-right">
+        <button class="btn btn-primary btn-sm" id="btnExport">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Export Excel
+        </button>
+        <a href="/admin" class="btn btn-secondary btn-sm">Admin Panel</a>
+      </div>
+    </header>
+
+    <!-- Stats Cards -->
+    <div class="ac-stats-grid" id="statsGrid">
+      <div class="ac-stat-card">
+        <div class="ac-stat-value" id="statUsers">-</div>
+        <div class="ac-stat-label">Users</div>
+      </div>
+      <div class="ac-stat-card">
+        <div class="ac-stat-value" id="statContent">-</div>
+        <div class="ac-stat-label">Content</div>
+      </div>
+      <div class="ac-stat-card">
+        <div class="ac-stat-value" id="statPosts">-</div>
+        <div class="ac-stat-label">Video Posts</div>
+      </div>
+      <div class="ac-stat-card">
+        <div class="ac-stat-value" id="statFollows">-</div>
+        <div class="ac-stat-label">Follows</div>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="ac-charts-row">
+      <div class="ac-chart-card">
+        <h3>Post Status Distribution</h3>
+        <canvas id="statusChart" height="200"></canvas>
+      </div>
+      <div class="ac-chart-card">
+        <h3>Top Users by Posts</h3>
+        <canvas id="usersChart" height="200"></canvas>
+      </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="ac-filter-bar">
+      <h2>All Content</h2>
+      <div class="ac-filters">
+        <input type="text" id="filterSearch" placeholder="Search content..." class="ac-filter-input">
+        <select id="filterUser" class="ac-filter-select">
+          <option value="">All Users</option>
+        </select>
+        <select id="filterCat" class="ac-filter-select">
+          <option value="">All Categories</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Content Table -->
+    <div class="ac-table-card">
+      <div class="table-container">
+        <table id="contentTable">
+          <thead>
+            <tr>
+              <th>Content Name</th>
+              <th>Owner</th>
+              <th>Category</th>
+              <th>Posts</th>
+              <th>Collabs</th>
+              <th>Public</th>
+              <th>Updated</th>
+            </tr>
+          </thead>
+          <tbody id="contentTableBody">
+            <tr><td colspan="7" style="text-align:center;padding:24px;">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ac-pagination" id="contentPagination"></div>
+    </div>
+
+    <!-- Posts Section -->
+    <div class="ac-filter-bar" style="margin-top:24px;">
+      <h2>Video Posts</h2>
+      <div class="ac-filters">
+        <select id="filterPostStatus" class="ac-filter-select">
+          <option value="">All Status</option>
+          <option value="draft">Draft</option>
+          <option value="hidden">Hidden</option>
+          <option value="done">Done</option>
+          <option value="posted">Posted</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="ac-table-card">
+      <div class="table-container">
+        <table id="postsTable">
+          <thead>
+            <tr>
+              <th>Content</th>
+              <th>Post #</th>
+              <th>Owner</th>
+              <th>Uploaded By</th>
+              <th>Status</th>
+              <th>Hook</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody id="postsTableBody">
+            <tr><td colspan="7" style="text-align:center;padding:24px;">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ac-pagination" id="postsPagination"></div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="ac-section" style="margin-top:24px;">
+      <h3>Recent Posts</h3>
+      <div id="recentPostsList"></div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="/js/admin-content.js?v=1"></script>
+</body>
+</html>
