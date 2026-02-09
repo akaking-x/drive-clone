@@ -497,7 +497,7 @@
 /* Upload Grid */
 .cm-upload-grid {
   display: grid;
-  grid-template-columns: 1fr 120px;
+  grid-template-columns: 1fr 120px 120px;
   gap: 12px;
   margin-bottom: 16px;
 }
@@ -944,7 +944,8 @@
   .cm-viewer-info { display: none; }
   .cm-viewer-text { padding: 16px; }
 
-  .cm-upload-grid { grid-template-columns: 1fr; }
+  .cm-upload-grid { grid-template-columns: 1fr 1fr; }
+  .cm-upload-grid .cm-upload-zone:first-child { grid-column: 1 / -1; }
 
   .cm-btn-upload span { display: none; }
 

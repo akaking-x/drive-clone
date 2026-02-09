@@ -29,6 +29,13 @@ const videoPostSchema = new mongoose.Schema({
     mimeType: String,
     size: Number
   },
+  // Text file attachment
+  text_file: {
+    s3Key: String,
+    originalName: String,
+    mimeType: String,
+    size: Number
+  },
   // Text content
   text_content: {
     hook: { type: String, default: '' },

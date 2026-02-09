@@ -29,7 +29,8 @@ const upload = multer({
 
 const uploadFields = upload.fields([
   { name: 'video', maxCount: 1 },
-  { name: 'thumbnail', maxCount: 1 }
+  { name: 'thumbnail', maxCount: 1 },
+  { name: 'textfile', maxCount: 1 }
 ]);
 
 // Helper: check content access
@@ -193,6 +194,23 @@ router.post('/api/video-posts', isAuthenticated, (req, res, next) => {
       };
     }
 
+    // Upload text file
+    if (req.files && req.files.textfile && req.files.textfile[0]) {
+      const txtFile = req.files.textfile[0];
+      tempFiles.push(txtFile.path);
+      const txtExt = path.extname(txtFile.originalname) || '.txt';
+      const txtKey = `${s3Base}/textfile${txtExt}`;
+      const txtStream = fs.createReadStream(txtFile.path);
+      await s3Service.uploadFile(txtKey, txtStream, txtFile.mimetype || 'text/plain');
+
+      postData.text_file = {
+        s3Key: txtKey,
+        originalName: txtFile.originalname,
+        mimeType: txtFile.mimetype,
+        size: txtFile.size
+      };
+    }
+
     const post = new VideoPost(postData);
     await post.save();
 
@@ -206,6 +224,7 @@ router.post('/api/video-posts', isAuthenticated, (req, res, next) => {
     let totalSize = 0;
     if (postData.video) totalSize += postData.video.size;
     if (postData.thumbnail) totalSize += postData.thumbnail.size;
+    if (postData.text_file) totalSize += postData.text_file.size;
     if (totalSize > 0) {
       await User.findByIdAndUpdate(access.content.owner, {
         $inc: { storageUsed: totalSize }
@@ -322,6 +341,10 @@ router.delete('/api/video-posts/:id', isAuthenticated, async (req, res) => {
       if (post.thumbnail && post.thumbnail.s3Key) {
         try { await s3Service.deleteFile(post.thumbnail.s3Key); } catch (e) {}
         totalSize += post.thumbnail.size || 0;
+      }
+      if (post.text_file && post.text_file.s3Key) {
+        try { await s3Service.deleteFile(post.text_file.s3Key); } catch (e) {}
+        totalSize += post.text_file.size || 0;
       }
     }
 

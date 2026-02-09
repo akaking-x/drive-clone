@@ -60,6 +60,13 @@ class ContentManagerApp {
     // Upload zones
     this.setupDropzone('videoDropzone', 'videoInput', 'videoDropContent');
     this.setupDropzone('thumbDropzone', 'thumbInput', 'thumbDropContent');
+    this.setupDropzone('txtDropzone', 'txtInput', 'txtDropContent');
+
+    // When txt file is selected, also read it into raw text
+    document.getElementById('txtInput').addEventListener('change', () => {
+      const file = document.getElementById('txtInput').files[0];
+      if (file) this.readTxtFile(file);
+    });
 
     // Text mode toggle
     document.getElementById('modeStructured').addEventListener('click', () => this.setTextMode('structured'));
@@ -161,6 +168,8 @@ class ContentManagerApp {
       if (e.dataTransfer.files[0]) {
         input.files = e.dataTransfer.files;
         this.updateDropzonePreview(zone, content, e.dataTransfer.files[0]);
+        // If this is the txt dropzone, also read the file content
+        if (inputId === 'txtInput') this.readTxtFile(e.dataTransfer.files[0]);
       }
     });
     input.addEventListener('change', () => {
@@ -183,29 +192,41 @@ class ContentManagerApp {
   setTextMode(mode) {
     document.getElementById('modeStructured').classList.toggle('active', mode === 'structured');
     document.getElementById('modeRaw').classList.toggle('active', mode === 'raw');
-    document.getElementById('structuredFields').style.display = mode === 'structured' ? '' : 'none';
-    document.getElementById('rawFields').style.display = mode === 'raw' ? '' : 'none';
+    document.getElementById('structuredFields').style.display = mode === 'structured' ? 'block' : 'none';
+    document.getElementById('rawFields').style.display = mode === 'raw' ? 'block' : 'none';
+  }
 
-    if (mode === 'raw') {
-      // Generate template from structured fields
-      const hook = document.getElementById('inputHook').value;
-      const caption = document.getElementById('inputCaption').value;
-      const hashtags = document.getElementById('inputHashtags').value;
-      const parts = [];
-      parts.push(`Hook: ${hook}`);
-      parts.push(`Caption: ${caption}`);
-      parts.push(`Hashtags: ${hashtags}`);
-      document.getElementById('inputRawText').value = parts.join('\n\n');
-    } else {
-      // Parse raw text back into structured fields
-      const rawText = document.getElementById('inputRawText').value;
-      const hookMatch = rawText.match(/Hook:\s*([\s\S]*?)(?:\n\nCaption:|\n\nHashtags:|$)/);
-      const captionMatch = rawText.match(/Caption:\s*([\s\S]*?)(?:\n\nHashtags:|$)/);
-      const hashtagsMatch = rawText.match(/Hashtags:\s*([\s\S]*?)$/);
-      if (hookMatch) document.getElementById('inputHook').value = hookMatch[1].trim();
-      if (captionMatch) document.getElementById('inputCaption').value = captionMatch[1].trim();
-      if (hashtagsMatch) document.getElementById('inputHashtags').value = hashtagsMatch[1].trim();
-    }
+  readTxtFile(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target.result;
+      document.getElementById('inputRawText').value = text;
+
+      // Try to parse structured fields from the text
+      const lines = text.split('\n');
+      const hookLine = lines.find(l => /^hook\s*[:：]/i.test(l.trim()));
+      const captionLine = lines.find(l => /^caption\s*[:：]/i.test(l.trim()));
+      const hashtagsLine = lines.find(l => /^hashtag/i.test(l.trim()));
+
+      if (hookLine) {
+        document.getElementById('inputHook').value = hookLine.replace(/^hook\s*[:：]\s*/i, '').trim();
+      }
+      if (captionLine) {
+        document.getElementById('inputCaption').value = captionLine.replace(/^caption\s*[:：]\s*/i, '').trim();
+      }
+      if (hashtagsLine) {
+        document.getElementById('inputHashtags').value = hashtagsLine.replace(/^hashtags?\s*[:：]\s*/i, '').trim();
+      }
+
+      // If no structured labels found, put everything into caption
+      if (!hookLine && !captionLine && !hashtagsLine) {
+        document.getElementById('inputCaption').value = text;
+      }
+
+      this.showToast('Text file loaded', 'success');
+    };
+    reader.onerror = () => this.showToast('Failed to read text file', 'error');
+    reader.readAsText(file, 'utf-8');
   }
 
   setupViewerSwipe() {
@@ -552,13 +573,17 @@ class ContentManagerApp {
   }
 
   openUploadModal() {
-    // Reset
+    // Reset file inputs
     document.getElementById('videoInput').value = '';
     document.getElementById('thumbInput').value = '';
+    document.getElementById('txtInput').value = '';
     document.getElementById('videoDropContent').innerHTML = '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg><span>Drop video or click</span><small>MP4, MOV, WebM</small>';
     document.getElementById('thumbDropContent').innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg><span>Thumbnail</span><small>JPG, PNG</small>';
+    document.getElementById('txtDropContent').innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg><span>Text File</span><small>TXT</small>';
     document.getElementById('videoDropzone').classList.remove('has-file');
     document.getElementById('thumbDropzone').classList.remove('has-file');
+    document.getElementById('txtDropzone').classList.remove('has-file');
+    // Reset text fields
     ['inputHook', 'inputCaption', 'inputHashtags', 'inputRawText', 'inputNotes'].forEach(id => {
       document.getElementById(id).value = '';
     });
@@ -572,9 +597,10 @@ class ContentManagerApp {
 
     const videoFile = document.getElementById('videoInput').files[0];
     const thumbFile = document.getElementById('thumbInput').files[0];
+    const txtFile = document.getElementById('txtInput').files[0];
 
-    if (!videoFile && !thumbFile) {
-      this.showToast('Please select at least a video or thumbnail', 'error');
+    if (!videoFile && !thumbFile && !txtFile) {
+      this.showToast('Please select at least one file (video, thumbnail, or text)', 'error');
       return;
     }
 
@@ -582,6 +608,7 @@ class ContentManagerApp {
     formData.append('content_id', this.currentContentId);
     if (videoFile) formData.append('video', videoFile);
     if (thumbFile) formData.append('thumbnail', thumbFile);
+    if (txtFile) formData.append('textfile', txtFile);
 
     const isStructured = document.getElementById('modeStructured').classList.contains('active');
     formData.append('text_mode', isStructured ? 'structured' : 'raw');
