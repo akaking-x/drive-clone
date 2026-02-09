@@ -101,6 +101,168 @@ router.get('/api/video-posts/:id', isAuthenticated, async (req, res) => {
   }
 });
 
+// === Presigned Upload Flow (bypasses Cloudflare) ===
+
+// Step 1: Get presigned URLs for direct S3 upload
+router.post('/api/video-posts/presign', isAuthenticated, async (req, res) => {
+  try {
+    if (!s3Service.isS3Configured()) {
+      return res.status(503).json({ error: 'Storage not configured' });
+    }
+
+    const { content_id, files } = req.body;
+    if (!content_id) return res.status(400).json({ error: 'content_id required' });
+    if (!files || !Array.isArray(files) || files.length === 0) {
+      return res.status(400).json({ error: 'files array required' });
+    }
+
+    const access = await checkContentAccess(content_id, req.session.userId, true);
+    if (access.error) return res.status(access.status).json({ error: access.error });
+
+    let s3Prefix = req.session.s3Prefix;
+    if (!s3Prefix) {
+      const user = await User.findById(req.session.userId);
+      if (!user || !user.s3Prefix) {
+        return res.status(500).json({ error: 'User storage prefix not configured' });
+      }
+      s3Prefix = user.s3Prefix;
+      req.session.s3Prefix = s3Prefix;
+    }
+
+    // Get next post number
+    const lastPost = await VideoPost.findOne({ content_id }).sort({ post_number: -1 });
+    const postNumber = lastPost ? lastPost.post_number + 1 : 1;
+
+    const s3Base = `${s3Prefix}/content/${content_id}/${postNumber}`;
+    const presigned = {};
+
+    for (const file of files) {
+      const { field, filename, contentType, size } = file;
+      if (!field || !filename || !contentType) continue;
+
+      const ext = path.extname(filename) || '';
+      let key;
+      if (field === 'video') key = `${s3Base}/video${ext}`;
+      else if (field === 'thumbnail') key = `${s3Base}/thumbnail${ext}`;
+      else if (field === 'textfile') key = `${s3Base}/textfile${ext}`;
+      else continue;
+
+      const url = await s3Service.getUploadUrl(key, contentType, 3600);
+      presigned[field] = { url, key, contentType, size: size || 0 };
+    }
+
+    res.json({
+      success: true,
+      postNumber,
+      presigned
+    });
+  } catch (error) {
+    console.error('Presign error:', error);
+    res.status(500).json({ error: 'Failed to generate upload URLs' });
+  }
+});
+
+// Step 2: Confirm upload after direct S3 upload
+router.post('/api/video-posts/confirm', isAuthenticated, async (req, res) => {
+  try {
+    const { content_id, postNumber, video, thumbnail, text_file,
+            hook, caption, hashtags, raw_text, text_mode, notes } = req.body;
+
+    if (!content_id || !postNumber) {
+      return res.status(400).json({ error: 'content_id and postNumber required' });
+    }
+
+    const access = await checkContentAccess(content_id, req.session.userId, true);
+    if (access.error) return res.status(access.status).json({ error: access.error });
+
+    // Verify at least one file was uploaded
+    if (!video && !thumbnail && !text_file) {
+      return res.status(400).json({ error: 'At least one file required' });
+    }
+
+    const postData = {
+      content_id,
+      post_number: postNumber,
+      owner: access.content.owner,
+      uploaded_by: req.session.userId,
+      text_content: {
+        hook: hook || '',
+        caption: caption || '',
+        hashtags: hashtags || '',
+        raw_text: raw_text || '',
+        mode: text_mode || 'structured'
+      },
+      notes: notes || '',
+      status: 'draft'
+    };
+
+    let totalSize = 0;
+
+    if (video && video.s3Key) {
+      postData.video = {
+        s3Key: video.s3Key,
+        originalName: video.originalName || 'video',
+        mimeType: video.mimeType || 'video/mp4',
+        size: video.size || 0
+      };
+      totalSize += video.size || 0;
+    }
+
+    if (thumbnail && thumbnail.s3Key) {
+      postData.thumbnail = {
+        s3Key: thumbnail.s3Key,
+        originalName: thumbnail.originalName || 'thumbnail',
+        mimeType: thumbnail.mimeType || 'image/jpeg',
+        size: thumbnail.size || 0
+      };
+      totalSize += thumbnail.size || 0;
+    }
+
+    if (text_file && text_file.s3Key) {
+      postData.text_file = {
+        s3Key: text_file.s3Key,
+        originalName: text_file.originalName || 'text.txt',
+        mimeType: text_file.mimeType || 'text/plain',
+        size: text_file.size || 0
+      };
+      totalSize += text_file.size || 0;
+    }
+
+    const post = new VideoPost(postData);
+    await post.save();
+
+    // Update content post count
+    await Content.findByIdAndUpdate(content_id, {
+      $inc: { post_count: 1 },
+      updatedAt: new Date()
+    });
+
+    // Update user storage
+    if (totalSize > 0) {
+      await User.findByIdAndUpdate(access.content.owner, {
+        $inc: { storageUsed: totalSize }
+      });
+    }
+
+    // Log activity
+    await CollabActivityLog.create({
+      content_id,
+      actor_id: req.session.userId,
+      action: 'upload_post',
+      target: post._id.toString(),
+      details: `Uploaded post #${postNumber}`
+    });
+
+    await post.populate('uploaded_by', 'username');
+    res.json({ success: true, post });
+  } catch (error) {
+    console.error('Confirm upload error:', error);
+    res.status(500).json({ error: 'Failed to create post: ' + error.message });
+  }
+});
+
+// === Legacy Upload (through server, for small files) ===
+
 // Upload new video post
 router.post('/api/video-posts', isAuthenticated, (req, res, next) => {
   uploadFields(req, res, (err) => {

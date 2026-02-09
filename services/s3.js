@@ -76,6 +76,21 @@ async function uploadFile(key, body, contentType, onProgress) {
   return await upload.done();
 }
 
+// Get presigned upload URL
+async function getUploadUrl(key, contentType, expiresIn = 3600) {
+  if (!isS3Configured()) {
+    throw new Error('S3 is not configured');
+  }
+
+  const command = new PutObjectCommand({
+    Bucket: currentBucket,
+    Key: key,
+    ContentType: contentType
+  });
+
+  return await getSignedUrl(s3Client, command, { expiresIn });
+}
+
 // Download file from S3 (get signed URL)
 async function getDownloadUrl(key, expiresIn = 3600) {
   if (!isS3Configured()) {
@@ -146,6 +161,7 @@ module.exports = {
   getBucket,
   isS3Configured,
   uploadFile,
+  getUploadUrl,
   getDownloadUrl,
   getFileStream,
   deleteFile,

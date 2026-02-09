@@ -604,66 +604,114 @@ class ContentManagerApp {
       return;
     }
 
-    const formData = new FormData();
-    formData.append('content_id', this.currentContentId);
-    if (videoFile) formData.append('video', videoFile);
-    if (thumbFile) formData.append('thumbnail', thumbFile);
-    if (txtFile) formData.append('textfile', txtFile);
-
-    const isStructured = document.getElementById('modeStructured').classList.contains('active');
-    formData.append('text_mode', isStructured ? 'structured' : 'raw');
-    formData.append('hook', document.getElementById('inputHook').value);
-    formData.append('caption', document.getElementById('inputCaption').value);
-    formData.append('hashtags', document.getElementById('inputHashtags').value);
-    formData.append('raw_text', document.getElementById('inputRawText').value);
-    formData.append('notes', document.getElementById('inputNotes').value);
-
     // Show progress
     document.getElementById('uploadProgress').style.display = '';
-    document.getElementById('uploadProgressText').textContent = 'Uploading... 0%';
+    document.getElementById('uploadProgressText').textContent = 'Requesting upload URLs...';
     document.getElementById('uploadProgressFill').style.width = '0%';
 
     try {
-      const xhr = new XMLHttpRequest();
-      xhr.timeout = 30 * 60 * 1000; // 30 minutes for large files
+      // Step 1: Get presigned URLs from server
+      const filesToPresign = [];
+      if (videoFile) filesToPresign.push({ field: 'video', filename: videoFile.name, contentType: videoFile.type, size: videoFile.size });
+      if (thumbFile) filesToPresign.push({ field: 'thumbnail', filename: thumbFile.name, contentType: thumbFile.type, size: thumbFile.size });
+      if (txtFile) filesToPresign.push({ field: 'textfile', filename: txtFile.name, contentType: txtFile.type || 'text/plain', size: txtFile.size });
 
-      xhr.upload.addEventListener('progress', (e) => {
-        if (e.lengthComputable) {
-          const pct = Math.round((e.loaded / e.total) * 100);
-          document.getElementById('uploadProgressFill').style.width = pct + '%';
-          document.getElementById('uploadProgressText').textContent =
-            pct < 100 ? `Uploading... ${pct}%` : 'Processing...';
-        }
+      const presignRes = await fetch('/api/video-posts/presign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content_id: this.currentContentId, files: filesToPresign })
       });
+      const presignData = await presignRes.json();
+      if (!presignData.success) {
+        throw new Error(presignData.error || 'Failed to get upload URLs');
+      }
 
-      const result = await new Promise((resolve, reject) => {
-        xhr.addEventListener('load', () => {
-          console.log('[CM] Upload response:', xhr.status, xhr.responseText.substring(0, 200));
-          try {
-            const data = JSON.parse(xhr.responseText);
-            if (xhr.status === 200) resolve(data);
-            else reject(new Error(data.error || `Server error (${xhr.status})`));
-          } catch (e) {
-            reject(new Error(`Invalid response (${xhr.status}): ${xhr.responseText.substring(0, 100)}`));
-          }
+      const { postNumber, presigned } = presignData;
+      console.log('[CM] Presigned URLs received, postNumber:', postNumber);
+
+      // Step 2: Upload files directly to S3
+      const uploadTasks = [];
+      const fileMap = { video: videoFile, thumbnail: thumbFile, textfile: txtFile };
+      const totalBytes = Object.keys(presigned).reduce((sum, key) => sum + (fileMap[key]?.size || 0), 0);
+      const progressMap = {};
+
+      const updateTotalProgress = () => {
+        const loaded = Object.values(progressMap).reduce((s, v) => s + v, 0);
+        const pct = totalBytes > 0 ? Math.round((loaded / totalBytes) * 100) : 0;
+        document.getElementById('uploadProgressFill').style.width = pct + '%';
+        document.getElementById('uploadProgressText').textContent =
+          pct < 100 ? `Uploading to S3... ${pct}%` : 'Finalizing...';
+      };
+
+      for (const [field, info] of Object.entries(presigned)) {
+        const file = fileMap[field];
+        if (!file) continue;
+        progressMap[field] = 0;
+
+        const task = new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.timeout = 30 * 60 * 1000;
+
+          xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+              progressMap[field] = e.loaded;
+              updateTotalProgress();
+            }
+          });
+
+          xhr.addEventListener('load', () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              console.log(`[CM] S3 upload OK: ${field} (${xhr.status})`);
+              resolve();
+            } else {
+              console.error(`[CM] S3 upload failed: ${field}`, xhr.status, xhr.responseText);
+              reject(new Error(`S3 upload failed for ${field} (${xhr.status})`));
+            }
+          });
+          xhr.addEventListener('error', () => reject(new Error(`Network error uploading ${field}`)));
+          xhr.addEventListener('timeout', () => reject(new Error(`Timeout uploading ${field}`)));
+
+          xhr.open('PUT', info.url);
+          xhr.setRequestHeader('Content-Type', info.contentType);
+          xhr.send(file);
         });
-        xhr.addEventListener('error', (e) => {
-          console.error('[CM] Upload network error:', e);
-          reject(new Error('Network error - check your connection'));
-        });
-        xhr.addEventListener('timeout', () => {
-          console.error('[CM] Upload timeout');
-          reject(new Error('Upload timed out'));
-        });
-        xhr.addEventListener('abort', () => {
-          console.error('[CM] Upload aborted');
-          reject(new Error('Upload was cancelled'));
-        });
-        xhr.open('POST', '/api/video-posts');
-        xhr.withCredentials = true;
-        console.log('[CM] Starting upload to /api/video-posts, size:', formData.get('video')?.size || 0);
-        xhr.send(formData);
+        uploadTasks.push(task);
+      }
+
+      await Promise.all(uploadTasks);
+      console.log('[CM] All S3 uploads complete');
+
+      // Step 3: Confirm with server to create DB record
+      document.getElementById('uploadProgressText').textContent = 'Saving post...';
+
+      const confirmBody = {
+        content_id: this.currentContentId,
+        postNumber,
+        text_mode: document.getElementById('modeStructured').classList.contains('active') ? 'structured' : 'raw',
+        hook: document.getElementById('inputHook').value,
+        caption: document.getElementById('inputCaption').value,
+        hashtags: document.getElementById('inputHashtags').value,
+        raw_text: document.getElementById('inputRawText').value,
+        notes: document.getElementById('inputNotes').value
+      };
+
+      // Attach file metadata
+      if (presigned.video) {
+        confirmBody.video = { s3Key: presigned.video.key, originalName: videoFile.name, mimeType: videoFile.type, size: videoFile.size };
+      }
+      if (presigned.thumbnail) {
+        confirmBody.thumbnail = { s3Key: presigned.thumbnail.key, originalName: thumbFile.name, mimeType: thumbFile.type, size: thumbFile.size };
+      }
+      if (presigned.textfile) {
+        confirmBody.text_file = { s3Key: presigned.textfile.key, originalName: txtFile.name, mimeType: txtFile.type || 'text/plain', size: txtFile.size };
+      }
+
+      const confirmRes = await fetch('/api/video-posts/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(confirmBody)
       });
+      const result = await confirmRes.json();
 
       if (result.success) {
         this.closeModal('uploadPostModal');
