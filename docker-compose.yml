@@ -4,7 +4,7 @@ services:
     container_name: drive-clone
     restart: unless-stopped
     ports:
-      - "6666:6666"
+      - "6680:6666"
     environment:
       - NODE_ENV=production
       - PORT=6666
