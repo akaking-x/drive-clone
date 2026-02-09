@@ -6,6 +6,18 @@
   --cm-header-height: 56px;
 }
 
+/* Prevent zoom - native app feel */
+html {
+  touch-action: manipulation;
+  -ms-touch-action: manipulation;
+  overscroll-behavior: none;
+}
+body {
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
+
 /* Layout */
 .cm-container {
   display: flex;
