@@ -96,6 +96,8 @@ class ContentManagerApp {
     document.getElementById('btnViewerNext').addEventListener('click', () => this.viewerNav(1));
     document.getElementById('btnDeletePost').addEventListener('click', () => this.deletePost());
     document.getElementById('btnDownloadVideo').addEventListener('click', () => this.downloadVideo());
+    document.getElementById('btnDlVideo').addEventListener('click', () => this.downloadVideoOnly());
+    document.getElementById('btnDlThumb').addEventListener('click', () => this.downloadThumbOnly());
 
     // Click on video to toggle play/pause
     const viewerVideo = document.getElementById('viewerVideo');
@@ -124,8 +126,8 @@ class ContentManagerApp {
     progressBar.addEventListener('mousedown', (e) => { seekDragging = true; progressBar.classList.add('active'); seekVideo(e); });
     document.addEventListener('mousemove', (e) => { if (seekDragging) seekVideo(e); });
     document.addEventListener('mouseup', () => { seekDragging = false; progressBar.classList.remove('active'); });
-    progressBar.addEventListener('touchstart', (e) => { seekDragging = true; progressBar.classList.add('active'); seekVideo(e.touches[0]); }, { passive: true });
-    progressBar.addEventListener('touchmove', (e) => { if (seekDragging) seekVideo(e.touches[0]); }, { passive: true });
+    progressBar.addEventListener('touchstart', (e) => { e.preventDefault(); seekDragging = true; progressBar.classList.add('active'); seekVideo(e.touches[0]); }, { passive: false });
+    progressBar.addEventListener('touchmove', (e) => { if (seekDragging) { e.preventDefault(); seekVideo(e.touches[0]); } }, { passive: false });
     progressBar.addEventListener('touchend', () => { seekDragging = false; progressBar.classList.remove('active'); });
 
     // Copy buttons
@@ -494,22 +496,64 @@ class ContentManagerApp {
   setupViewerSwipe() {
     const viewer = document.querySelector('.cm-viewer');
     if (!viewer) return;
-    let startX = 0, startY = 0;
+    let startX = 0, startY = 0, startTime = 0, tracking = false, swiping = false;
+    const video = document.getElementById('viewerVideo');
+
     viewer.addEventListener('touchstart', (e) => {
+      // Don't track swipes on sidebar buttons or progress bar
+      if (e.target.closest('.cm-v-sidebar, .cm-v-progress, .cm-v-status-bar, .cm-v-btn')) return;
       startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
+      startTime = Date.now();
+      tracking = true;
+      swiping = false;
     }, { passive: true });
+
+    viewer.addEventListener('touchmove', (e) => {
+      if (!tracking) return;
+      const dx = e.touches[0].clientX - startX;
+      const dy = e.touches[0].clientY - startY;
+
+      // Determine if horizontal swipe once we move enough
+      if (!swiping && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) {
+        swiping = true;
+      }
+
+      if (swiping) {
+        // Visual feedback: translate video with finger
+        const clampedDx = Math.max(-120, Math.min(120, dx));
+        const opacity = 1 - Math.abs(clampedDx) / 300;
+        video.style.transform = `translateX(${clampedDx}px)`;
+        video.style.opacity = opacity;
+        video.style.transition = 'none';
+      }
+    }, { passive: true });
+
     viewer.addEventListener('touchend', (e) => {
+      if (!tracking) return;
+      tracking = false;
       const dx = e.changedTouches[0].clientX - startX;
       const dy = e.changedTouches[0].clientY - startY;
-      // Horizontal swipe for navigation (prioritize if horizontal > vertical)
-      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 60) {
-        this.viewerNav(dx > 0 ? -1 : 1);
+      const dt = Date.now() - startTime;
+      const velocity = Math.abs(dx) / dt; // px/ms
+
+      // Reset video transform
+      video.style.transition = 'transform 0.25s ease, opacity 0.25s ease';
+      video.style.transform = '';
+      video.style.opacity = '';
+
+      // Horizontal swipe (threshold or velocity based)
+      if (Math.abs(dx) > Math.abs(dy) && (Math.abs(dx) > 50 || velocity > 0.3)) {
+        if (swiping) {
+          this.viewerNav(dx > 0 ? -1 : 1);
+        }
       }
       // Vertical swipe down to close
-      else if (dy > 120) {
+      else if (dy > 100 && Math.abs(dy) > Math.abs(dx)) {
         this.closeModal('viewerModal');
       }
+
+      swiping = false;
     }, { passive: true });
   }
 
@@ -829,8 +873,12 @@ class ContentManagerApp {
     // Counter
     document.getElementById('viewerCounter').textContent = `${this.viewerIndex + 1}/${this.posts.length}`;
 
-    // Show/hide download button
-    document.getElementById('btnDownloadVideo').style.display = (post.video && post.video.s3Key) ? '' : 'none';
+    // Show/hide download buttons
+    const hasVideo = post.video && post.video.s3Key;
+    const hasThumb = post.thumbnail && post.thumbnail.s3Key;
+    document.getElementById('btnDownloadVideo').style.display = hasVideo ? '' : 'none';
+    document.getElementById('btnDlVideo').style.display = hasVideo ? '' : 'none';
+    document.getElementById('btnDlThumb').style.display = hasThumb ? '' : 'none';
 
     // Show/hide edit actions based on permission
     const canEdit = this.isOwner || this.isEditor;
@@ -851,19 +899,33 @@ class ContentManagerApp {
     document.getElementById('viewerProgressFill').style.width = '0';
     document.getElementById('viewerProgressHandle').style.left = '0';
 
-    const viewer = document.querySelector('.cm-viewer');
     const video = document.getElementById('viewerVideo');
 
-    // Fade out
-    viewer.classList.add('cm-v-sliding');
+    // Slide out with direction
+    video.style.transition = 'transform 0.25s ease, opacity 0.2s ease';
+    video.style.transform = dir > 0 ? 'translateX(-40%)' : 'translateX(40%)';
+    video.style.opacity = '0';
     video.pause();
 
     setTimeout(() => {
       video.src = '';
       this.updateViewer(this.posts[newIndex]);
 
+      // Position for slide in from opposite side
+      video.style.transition = 'none';
+      video.style.transform = dir > 0 ? 'translateX(40%)' : 'translateX(-40%)';
+
       // Load new video
       const post = this.posts[newIndex];
+      const slideIn = () => {
+        requestAnimationFrame(() => {
+          video.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.25s ease';
+          video.style.transform = 'translateX(0)';
+          video.style.opacity = '1';
+          setTimeout(() => { this._navLock = false; }, 300);
+        });
+      };
+
       if (post.video && post.video.s3Key) {
         video.style.display = '';
         document.getElementById('viewerVideoPlaceholder').style.display = 'none';
@@ -874,19 +936,18 @@ class ContentManagerApp {
               video.src = data.url;
               video.play().catch(() => {});
             }
-            viewer.classList.remove('cm-v-sliding');
-            this._navLock = false;
+            slideIn();
           }).catch(() => {
-            viewer.classList.remove('cm-v-sliding');
-            this._navLock = false;
+            slideIn();
           });
       } else {
         video.style.display = 'none';
         document.getElementById('viewerVideoPlaceholder').style.display = '';
-        viewer.classList.remove('cm-v-sliding');
+        video.style.transform = '';
+        video.style.opacity = '';
         this._navLock = false;
       }
-    }, 150);
+    }, 250);
   }
 
   // === Actions ===
@@ -1117,11 +1178,15 @@ class ContentManagerApp {
   showStatusPopup(badge) {
     // Remove any existing popup
     document.querySelectorAll('.cm-status-popup').forEach(p => p.remove());
+    document.querySelectorAll('.cm-post-card.cm-popup-open').forEach(c => c.classList.remove('cm-popup-open'));
 
     const card = badge.closest('.cm-post-card');
     const postId = card.dataset.postId || card.dataset.id;
     const post = this.posts.find(p => p._id === postId);
     if (!post) return;
+
+    // Allow overflow so popup is visible
+    card.classList.add('cm-popup-open');
 
     const popup = document.createElement('div');
     popup.className = 'cm-status-popup';
@@ -1133,18 +1198,27 @@ class ContentManagerApp {
         e.stopPropagation();
         await this._updatePostStatus(post, s);
         popup.remove();
+        card.classList.remove('cm-popup-open');
         this.showToast(`Status: ${s}`, 'success');
       });
       popup.appendChild(btn);
     });
 
-    card.querySelector('.cm-post-card-inner').appendChild(popup);
+    card.appendChild(popup);
 
-    // Auto-close on click outside
+    // Auto-close on click/touch outside
     const close = (e) => {
-      if (!popup.contains(e.target)) { popup.remove(); document.removeEventListener('click', close); }
+      if (!popup.contains(e.target)) {
+        popup.remove();
+        card.classList.remove('cm-popup-open');
+        document.removeEventListener('click', close);
+        document.removeEventListener('touchend', close);
+      }
     };
-    setTimeout(() => document.addEventListener('click', close), 10);
+    setTimeout(() => {
+      document.addEventListener('click', close);
+      document.addEventListener('touchend', close);
+    }, 10);
   }
 
   async deletePost() {
@@ -1565,6 +1639,51 @@ class ContentManagerApp {
     if (!post || !post.video?.s3Key) return;
     this.showViewerFeedback('Downloading...');
     await this._downloadPost(post);
+  }
+
+  async downloadVideoOnly() {
+    const post = this.posts[this.viewerIndex];
+    if (!post || !post.video?.s3Key) return;
+    this.showViewerFeedback('Downloading video...');
+    try {
+      const res = await fetch(`/api/video-posts/${post._id}/video`);
+      const data = await res.json();
+      if (data.url) {
+        const blob = await fetch(data.url).then(r => r.blob());
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = post.video.originalName || `video-${post.post_number}.mp4`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+        this.showViewerFeedback('Video downloaded!');
+      }
+    } catch(e) {
+      this.showViewerFeedback('Download failed');
+    }
+  }
+
+  async downloadThumbOnly() {
+    const post = this.posts[this.viewerIndex];
+    if (!post || !post.thumbnail?.s3Key) return;
+    this.showViewerFeedback('Downloading thumbnail...');
+    try {
+      const res = await fetch(`/api/video-posts/${post._id}/thumbnail`);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = post.thumbnail.originalName || `thumb-${post.post_number}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+      this.showViewerFeedback('Thumbnail downloaded!');
+    } catch(e) {
+      this.showViewerFeedback('Download failed');
+    }
   }
 
   async _downloadPost(post) {
