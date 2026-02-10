@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -11,7 +11,7 @@
   <meta name="format-detection" content="telephone=no">
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.svg">
-  <title>Vault - Drive Clone</title>
+  <title>Kho mật khẩu - Drive Clone</title>
   <link rel="stylesheet" href="/css/style.css?v=4">
   <link rel="stylesheet" href="/css/vault.css?v=3">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔐</text></svg>">
@@ -24,37 +24,37 @@
     <!-- Sidebar -->
     <aside class="vault-sidebar" id="sidebar">
       <div class="vault-sidebar-header">
-        <h1>🔐 Vault</h1>
+        <h1>🔐 Kho mật khẩu</h1>
       </div>
       <nav class="vault-sidebar-nav">
         <a href="#" class="vault-nav-item active" data-filter="all">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
-          All Credentials
+          Tất cả tài khoản
         </a>
         <div class="vault-nav-divider"></div>
         <div id="serviceNavItems"></div>
         <div class="vault-nav-divider"></div>
         <a href="/drive" class="vault-nav-item">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
-          My Drive
+          Ổ đĩa của tôi
         </a>
         <a href="/content-manager" class="vault-nav-item">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
-          Content Manager
+          Quản lý nội dung
         </a>
         <a href="/admin" class="vault-nav-item" id="navAdmin" style="display:none;">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
-          Admin Panel
+          Quản trị
         </a>
         <a href="/admin-vault" class="vault-nav-item" id="navAdminVault" style="display:none;">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
-          Vault Management
+          Quản lý mật khẩu
         </a>
       </nav>
       <div class="vault-sidebar-footer">
         <div class="vault-user-row">
-          <span class="vault-user-name" id="userName">User</span>
-          <button class="vault-btn-icon" id="btnLogout" title="Logout">
+          <span class="vault-user-name" id="userName">Người dùng</span>
+          <button class="vault-btn-icon" id="btnLogout" title="Đăng xuất">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
               <polyline points="16 17 21 12 16 7"></polyline>
@@ -76,7 +76,7 @@
             <line x1="3" y1="18" x2="21" y2="18"></line>
           </svg>
         </button>
-        <span class="vault-header-title" id="pageTitle">All Credentials</span>
+        <span class="vault-header-title" id="pageTitle">Tất cả tài khoản</span>
       </header>
 
       <!-- Scrollable content area -->
@@ -88,7 +88,7 @@
   <div class="modal-overlay vault-report-modal" id="reportModal">
     <div class="modal">
       <div class="modal-header">
-        <h2>Report Issue</h2>
+        <h2>Báo lỗi</h2>
         <button class="modal-close" id="closeReportModal">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
@@ -96,12 +96,12 @@
         </button>
       </div>
       <div class="modal-body">
-        <p style="margin-bottom: 12px; color: var(--text-secondary);">Describe the issue with this credential:</p>
-        <textarea id="reportMessage" placeholder="e.g., Password not working, account locked..."></textarea>
+        <p style="margin-bottom: 12px; color: var(--text-secondary);">Mô tả vấn đề với tài khoản này:</p>
+        <textarea id="reportMessage" placeholder="VD: Mật khẩu không đúng, tài khoản bị khóa..."></textarea>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" id="cancelReport">Cancel</button>
-        <button class="btn btn-danger" id="submitReport">Report Issue</button>
+        <button class="btn btn-secondary" id="cancelReport">Hủy</button>
+        <button class="btn btn-danger" id="submitReport">Gửi báo lỗi</button>
       </div>
     </div>
   </div>
@@ -109,6 +109,6 @@
   <!-- Toast Container -->
   <div class="toast-container" id="toastContainer"></div>
 
-  <script src="/js/vault.js?v=4"></script>
+  <script src="/js/vault.js?v=5"></script>
 </body>
 </html>

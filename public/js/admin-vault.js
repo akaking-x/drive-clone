@@ -83,16 +83,16 @@ class AdminVaultApp {
       this.renderGroups();
       this.renderCredentials();
     } catch (error) {
-      this.showToast('Failed to load data', 'error');
+      this.showToast('Không thể tải dữ liệu', 'error');
     }
   }
 
   // ========== Services ==========
   renderServices() {
-    document.getElementById('servicesCount').textContent = `${this.services.length} service(s)`;
+    document.getElementById('servicesCount').textContent = `${this.services.length} dịch vụ`;
     const container = document.getElementById('servicesList');
     if (this.services.length === 0) {
-      container.innerHTML = '<p style="text-align:center; padding:40px; color:var(--text-secondary);">No services yet</p>';
+      container.innerHTML = '<p style="text-align:center; padding:40px; color:var(--text-secondary);">Chưa có dịch vụ nào</p>';
       return;
     }
     container.innerHTML = this.services.map(s => `
@@ -100,8 +100,8 @@ class AdminVaultApp {
         <div class="av-card-header">
           <span class="av-card-title">${this.esc(s.icon || '🔑')} ${this.esc(s.name)}</span>
           <div class="av-card-actions">
-            <button class="btn btn-sm btn-secondary" onclick="avApp.openServiceModal('${s._id}')">Edit</button>
-            <button class="btn btn-sm btn-danger" onclick="avApp.deleteService('${s._id}')">Delete</button>
+            <button class="btn btn-sm btn-secondary" onclick="avApp.openServiceModal('${s._id}')">Sửa</button>
+            <button class="btn btn-sm btn-danger" onclick="avApp.deleteService('${s._id}')">Xóa</button>
           </div>
         </div>
         ${s.guide_text ? `<div class="av-card-meta" style="white-space:pre-line;">${this.esc(s.guide_text).substring(0, 200)}${s.guide_text.length > 200 ? '...' : ''}</div>` : ''}
@@ -112,7 +112,7 @@ class AdminVaultApp {
   openServiceModal(id) {
     const s = id ? this.services.find(x => x._id === id) : null;
     document.getElementById('serviceEditId').value = id || '';
-    document.getElementById('serviceModalTitle').textContent = s ? 'Edit Service' : 'Add Service';
+    document.getElementById('serviceModalTitle').textContent = s ? 'Sửa dịch vụ' : 'Thêm dịch vụ';
     document.getElementById('serviceName').value = s?.name || '';
     document.getElementById('serviceIcon').value = s?.icon || '';
     document.getElementById('serviceGuide').value = s?.guide_text || '';
@@ -126,7 +126,7 @@ class AdminVaultApp {
       icon: document.getElementById('serviceIcon').value.trim(),
       guide_text: document.getElementById('serviceGuide').value
     };
-    if (!body.name) return this.showToast('Name is required', 'error');
+    if (!body.name) return this.showToast('Vui lòng nhập tên dịch vụ', 'error');
 
     try {
       const url = id ? `/api/admin/vault/services/${id}` : '/api/admin/vault/services';
@@ -134,7 +134,7 @@ class AdminVaultApp {
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      this.showToast(id ? 'Service updated' : 'Service created', 'success');
+      this.showToast(id ? 'Đã cập nhật dịch vụ' : 'Đã tạo dịch vụ', 'success');
       this.closeModal('serviceModal');
       await this.loadAll();
     } catch (error) {
@@ -143,12 +143,12 @@ class AdminVaultApp {
   }
 
   async deleteService(id) {
-    if (!confirm('Delete this service?')) return;
+    if (!confirm('Xóa dịch vụ này?')) return;
     try {
       const res = await fetch(`/api/admin/vault/services/${id}`, { method: 'DELETE' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      this.showToast('Service deleted', 'success');
+      this.showToast('Đã xóa dịch vụ', 'success');
       await this.loadAll();
     } catch (error) {
       this.showToast(error.message, 'error');
@@ -157,10 +157,10 @@ class AdminVaultApp {
 
   // ========== Groups ==========
   renderGroups() {
-    document.getElementById('groupsCount').textContent = `${this.groups.length} group(s)`;
+    document.getElementById('groupsCount').textContent = `${this.groups.length} nhóm`;
     const container = document.getElementById('groupsList');
     if (this.groups.length === 0) {
-      container.innerHTML = '<p style="text-align:center; padding:40px; color:var(--text-secondary);">No groups yet</p>';
+      container.innerHTML = '<p style="text-align:center; padding:40px; color:var(--text-secondary);">Chưa có nhóm nào</p>';
       return;
     }
     container.innerHTML = this.groups.map(g => `
@@ -168,20 +168,20 @@ class AdminVaultApp {
         <div class="av-card-header">
           <span class="av-card-title">${this.esc(g.name)}</span>
           <div class="av-card-actions">
-            <button class="btn btn-sm btn-primary" onclick="avApp.openAddMemberModal('${g._id}')">+ Member</button>
-            <button class="btn btn-sm btn-secondary" onclick="avApp.openGroupModal('${g._id}')">Edit</button>
-            <button class="btn btn-sm btn-danger" onclick="avApp.deleteGroup('${g._id}')">Delete</button>
+            <button class="btn btn-sm btn-primary" onclick="avApp.openAddMemberModal('${g._id}')">+ Thành viên</button>
+            <button class="btn btn-sm btn-secondary" onclick="avApp.openGroupModal('${g._id}')">Sửa</button>
+            <button class="btn btn-sm btn-danger" onclick="avApp.deleteGroup('${g._id}')">Xóa</button>
           </div>
         </div>
         ${g.description ? `<div class="av-card-meta">${this.esc(g.description)}</div>` : ''}
         <div class="av-members">
           ${g.members.map(m => `
             <span class="av-member-chip">
-              ${this.esc(m.user_id?.username || 'Unknown')}
+              ${this.esc(m.user_id?.username || 'Không xác định')}
               <span class="remove" onclick="avApp.removeMember('${g._id}', '${m.user_id?._id}')">&times;</span>
             </span>
           `).join('')}
-          ${g.members.length === 0 ? '<span style="font-size:13px; color:var(--text-secondary);">No members</span>' : ''}
+          ${g.members.length === 0 ? '<span style="font-size:13px; color:var(--text-secondary);">Chưa có thành viên</span>' : ''}
         </div>
       </div>
     `).join('');
@@ -190,7 +190,7 @@ class AdminVaultApp {
   openGroupModal(id) {
     const g = id ? this.groups.find(x => x._id === id) : null;
     document.getElementById('groupEditId').value = id || '';
-    document.getElementById('groupModalTitle').textContent = g ? 'Edit Group' : 'Add Group';
+    document.getElementById('groupModalTitle').textContent = g ? 'Sửa nhóm' : 'Thêm nhóm';
     document.getElementById('groupName').value = g?.name || '';
     document.getElementById('groupDescription').value = g?.description || '';
     this.openModal('groupModal');
@@ -202,7 +202,7 @@ class AdminVaultApp {
       name: document.getElementById('groupName').value.trim(),
       description: document.getElementById('groupDescription').value.trim()
     };
-    if (!body.name) return this.showToast('Name is required', 'error');
+    if (!body.name) return this.showToast('Vui lòng nhập tên nhóm', 'error');
 
     try {
       const url = id ? `/api/admin/vault/groups/${id}` : '/api/admin/vault/groups';
@@ -210,7 +210,7 @@ class AdminVaultApp {
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      this.showToast(id ? 'Group updated' : 'Group created', 'success');
+      this.showToast(id ? 'Đã cập nhật nhóm' : 'Đã tạo nhóm', 'success');
       this.closeModal('groupModal');
       await this.loadAll();
     } catch (error) {
@@ -219,12 +219,12 @@ class AdminVaultApp {
   }
 
   async deleteGroup(id) {
-    if (!confirm('Delete this group? Credentials shared with this group will lose access.')) return;
+    if (!confirm('Xóa nhóm này? Các tài khoản chia sẻ cho nhóm này sẽ mất quyền truy cập.')) return;
     try {
       const res = await fetch(`/api/admin/vault/groups/${id}`, { method: 'DELETE' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      this.showToast('Group deleted', 'success');
+      this.showToast('Đã xóa nhóm', 'success');
       await this.loadAll();
     } catch (error) {
       this.showToast(error.message, 'error');
@@ -236,7 +236,7 @@ class AdminVaultApp {
     const group = this.groups.find(g => g._id === groupId);
     const memberIds = (group?.members || []).map(m => m.user_id?._id);
     const select = document.getElementById('addMemberSelect');
-    select.innerHTML = '<option value="">Select a user...</option>' +
+    select.innerHTML = '<option value="">Chọn người dùng...</option>' +
       this.users.filter(u => !memberIds.includes(u._id)).map(u =>
         `<option value="${u._id}">${this.esc(u.username)}</option>`
       ).join('');
@@ -246,7 +246,7 @@ class AdminVaultApp {
   async addMember() {
     const groupId = document.getElementById('addMemberGroupId').value;
     const userId = document.getElementById('addMemberSelect').value;
-    if (!userId) return this.showToast('Select a user', 'error');
+    if (!userId) return this.showToast('Vui lòng chọn người dùng', 'error');
 
     try {
       const res = await fetch(`/api/admin/vault/groups/${groupId}/members`, {
@@ -255,7 +255,7 @@ class AdminVaultApp {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      this.showToast('Member added', 'success');
+      this.showToast('Đã thêm thành viên', 'success');
       this.closeModal('addMemberModal');
       await this.loadAll();
     } catch (error) {
@@ -264,12 +264,12 @@ class AdminVaultApp {
   }
 
   async removeMember(groupId, userId) {
-    if (!confirm('Remove this member?')) return;
+    if (!confirm('Xóa thành viên này khỏi nhóm?')) return;
     try {
       const res = await fetch(`/api/admin/vault/groups/${groupId}/members/${userId}`, { method: 'DELETE' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      this.showToast('Member removed', 'success');
+      this.showToast('Đã xóa thành viên', 'success');
       await this.loadAll();
     } catch (error) {
       this.showToast(error.message, 'error');
@@ -278,12 +278,15 @@ class AdminVaultApp {
 
   // ========== Credentials ==========
   renderCredentials() {
-    document.getElementById('credentialsCount').textContent = `${this.credentials.length} credential(s)`;
+    document.getElementById('credentialsCount').textContent = `${this.credentials.length} tài khoản`;
     const container = document.getElementById('adminCredentialsList');
     if (this.credentials.length === 0) {
-      container.innerHTML = '<p style="text-align:center; padding:40px; color:var(--text-secondary);">No credentials yet</p>';
+      container.innerHTML = '<p style="text-align:center; padding:40px; color:var(--text-secondary);">Chưa có tài khoản nào</p>';
       return;
     }
+
+    const statusMap = { active: 'Hoạt động', error: 'Lỗi', inactive: 'Tạm ngưng' };
+
     container.innerHTML = this.credentials.map(c => {
       const statusClass = c.status === 'active' ? 'vault-status-active' :
                           c.status === 'error' ? 'vault-status-error' : 'vault-status-inactive';
@@ -294,34 +297,34 @@ class AdminVaultApp {
         <div class="av-card">
           <div class="av-card-header">
             <span class="av-card-title">
-              ${this.esc(c.service_id?.icon || '🔑')} ${this.esc(c.service_id?.name || 'Unknown')} - ${this.esc(c.label)}
+              ${this.esc(c.service_id?.icon || '🔑')} ${this.esc(c.service_id?.name || 'Không xác định')} - ${this.esc(c.label)}
             </span>
             <div class="av-card-actions">
-              <span class="vault-status-badge ${statusClass}">${c.status}</span>
-              <button class="btn btn-sm btn-secondary" onclick="avApp.openCredentialModal('${c._id}')">Edit</button>
-              <button class="btn btn-sm btn-danger" onclick="avApp.deleteCredential('${c._id}')">Delete</button>
+              <span class="vault-status-badge ${statusClass}">${statusMap[c.status] || c.status}</span>
+              <button class="btn btn-sm btn-secondary" onclick="avApp.openCredentialModal('${c._id}')">Sửa</button>
+              <button class="btn btn-sm btn-danger" onclick="avApp.deleteCredential('${c._id}')">Xóa</button>
             </div>
           </div>
-          <div class="av-card-meta">Username: <strong>${this.esc(c.credentials?.username || '-')}</strong></div>
+          <div class="av-card-meta">Tài khoản: <strong>${this.esc(c.credentials?.username || '-')}</strong></div>
           ${(c.credentials?.extra_fields || []).length > 0 ? `
             <div class="av-card-meta" style="margin-top:4px;">
-              Extra: ${c.credentials.extra_fields.map(f => `<strong>${this.esc(f.key)}</strong>: ${this.esc(f.value)}`).join(', ')}
+              Bổ sung: ${c.credentials.extra_fields.map(f => `<strong>${this.esc(f.key)}</strong>: ${this.esc(f.value)}`).join(', ')}
             </div>
           ` : ''}
           <div class="av-sharing" style="margin-top:8px;">
-            ${(c.shared_with_users || []).map(u => `<span class="av-share-chip user">${this.esc(u.username || 'Unknown')}</span>`).join('')}
-            ${(c.shared_with_groups || []).map(g => `<span class="av-share-chip group">${this.esc(g.name || 'Unknown')}</span>`).join('')}
-            ${(c.shared_with_users || []).length === 0 && (c.shared_with_groups || []).length === 0 ? '<span style="font-size:12px; color:var(--text-secondary);">Not shared</span>' : ''}
+            ${(c.shared_with_users || []).map(u => `<span class="av-share-chip user">${this.esc(u.username || 'Không xác định')}</span>`).join('')}
+            ${(c.shared_with_groups || []).map(g => `<span class="av-share-chip group">${this.esc(g.name || 'Không xác định')}</span>`).join('')}
+            ${(c.shared_with_users || []).length === 0 && (c.shared_with_groups || []).length === 0 ? '<span style="font-size:12px; color:var(--text-secondary);">Chưa chia sẻ</span>' : ''}
           </div>
           ${unresolvedErrors.length > 0 ? `
             <div class="av-error-reports">
-              <strong style="font-size:13px; color:var(--danger-color);">Error Reports (${unresolvedErrors.length}):</strong>
+              <strong style="font-size:13px; color:var(--danger-color);">Báo lỗi (${unresolvedErrors.length}):</strong>
               ${unresolvedErrors.map((r, i) => {
                 const realIdx = c.error_reports.indexOf(r);
                 return `
                   <div class="av-error-item">
-                    <span>${this.esc(r.reported_by?.username || 'Unknown')}: ${this.esc(r.message)}</span>
-                    <button class="btn btn-sm btn-secondary" onclick="avApp.resolveError('${c._id}', ${realIdx})">Resolve</button>
+                    <span>${this.esc(r.reported_by?.username || 'Không xác định')}: ${this.esc(r.message)}</span>
+                    <button class="btn btn-sm btn-secondary" onclick="avApp.resolveError('${c._id}', ${realIdx})">Đã xử lý</button>
                   </div>
                 `;
               }).join('')}
@@ -335,7 +338,7 @@ class AdminVaultApp {
   openCredentialModal(id) {
     const c = id ? this.credentials.find(x => x._id === id) : null;
     document.getElementById('credentialEditId').value = id || '';
-    document.getElementById('credentialModalTitle').textContent = c ? 'Edit Credential' : 'Add Credential';
+    document.getElementById('credentialModalTitle').textContent = c ? 'Sửa tài khoản' : 'Thêm tài khoản';
 
     // Populate service dropdown
     const svcSelect = document.getElementById('credService');
@@ -376,8 +379,8 @@ class AdminVaultApp {
     const row = document.createElement('div');
     row.className = 'av-extra-field-row';
     row.innerHTML = `
-      <input type="text" placeholder="Field name" value="${this.esc(key)}" class="ef-key">
-      <input type="text" placeholder="Value" value="${this.esc(value)}" class="ef-value">
+      <input type="text" placeholder="Tên trường" value="${this.esc(key)}" class="ef-key">
+      <input type="text" placeholder="Giá trị" value="${this.esc(value)}" class="ef-value">
       <button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.remove()">X</button>
     `;
     container.appendChild(row);
@@ -408,7 +411,7 @@ class AdminVaultApp {
       body.password = password;
     }
 
-    if (!body.service_id || !body.label) return this.showToast('Service and label are required', 'error');
+    if (!body.service_id || !body.label) return this.showToast('Vui lòng chọn dịch vụ và nhập nhãn', 'error');
 
     try {
       const url = id ? `/api/admin/vault/credentials/${id}` : '/api/admin/vault/credentials';
@@ -416,7 +419,7 @@ class AdminVaultApp {
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      this.showToast(id ? 'Credential updated' : 'Credential created', 'success');
+      this.showToast(id ? 'Đã cập nhật tài khoản' : 'Đã tạo tài khoản', 'success');
       this.closeModal('credentialModal');
       await this.loadAll();
     } catch (error) {
@@ -425,12 +428,12 @@ class AdminVaultApp {
   }
 
   async deleteCredential(id) {
-    if (!confirm('Delete this credential?')) return;
+    if (!confirm('Xóa tài khoản này?')) return;
     try {
       const res = await fetch(`/api/admin/vault/credentials/${id}`, { method: 'DELETE' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      this.showToast('Credential deleted', 'success');
+      this.showToast('Đã xóa tài khoản', 'success');
       await this.loadAll();
     } catch (error) {
       this.showToast(error.message, 'error');
@@ -442,7 +445,7 @@ class AdminVaultApp {
       const res = await fetch(`/api/admin/vault/credentials/${credId}/resolve-error/${idx}`, { method: 'PATCH' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      this.showToast('Error resolved', 'success');
+      this.showToast('Đã xử lý báo lỗi', 'success');
       await this.loadAll();
     } catch (error) {
       this.showToast(error.message, 'error');

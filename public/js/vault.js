@@ -22,7 +22,7 @@ class VaultApp {
         return;
       }
       this.user = data;
-      document.getElementById('userName').textContent = data.username || 'User';
+      document.getElementById('userName').textContent = data.username || 'Người dùng';
       if (data.isAdmin) {
         document.getElementById('navAdmin').style.display = '';
         document.getElementById('navAdminVault').style.display = '';
@@ -86,7 +86,7 @@ class VaultApp {
       this.buildServiceNav();
       this.renderCredentials();
     } catch (error) {
-      this.showToast('Failed to load vault data', 'error');
+      this.showToast('Không thể tải dữ liệu', 'error');
     }
   }
 
@@ -120,10 +120,10 @@ class VaultApp {
     if (active) active.classList.add('active');
 
     if (filter === 'all') {
-      document.getElementById('pageTitle').textContent = 'All Credentials';
+      document.getElementById('pageTitle').textContent = 'Tất cả tài khoản';
     } else {
       const svc = this.services.find(s => s._id === filter);
-      document.getElementById('pageTitle').textContent = svc ? svc.name : 'Credentials';
+      document.getElementById('pageTitle').textContent = svc ? svc.name : 'Tài khoản';
     }
 
     this.renderCredentials();
@@ -141,7 +141,7 @@ class VaultApp {
       container.innerHTML = `
         <div class="vault-empty">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
-          <p>No credentials shared with you yet</p>
+          <p>Chưa có tài khoản nào được chia sẻ cho bạn</p>
         </div>
       `;
       return;
@@ -160,7 +160,7 @@ class VaultApp {
         <div class="vault-service-section">
           <div class="vault-service-title">
             <span class="vault-service-icon">${this.escapeHtml(group.service?.icon || '🔑')}</span>
-            ${this.escapeHtml(group.service?.name || 'Unknown Service')}
+            ${this.escapeHtml(group.service?.name || 'Dịch vụ không xác định')}
           </div>
           ${group.creds.map(c => this.renderCard(c)).join('')}
           ${group.service?.guide_text ? this.renderGuide(group.service.guide_text, group.service._id) : ''}
@@ -178,16 +178,17 @@ class VaultApp {
   }
 
   renderCard(cred) {
+    const statusMap = { active: 'Hoạt động', error: 'Lỗi', inactive: 'Tạm ngưng' };
     const statusClass = cred.status === 'active' ? 'vault-status-active' :
                         cred.status === 'error' ? 'vault-status-error' : 'vault-status-inactive';
-    const statusLabel = cred.status.charAt(0).toUpperCase() + cred.status.slice(1);
+    const statusLabel = statusMap[cred.status] || cred.status;
 
     const extraFields = (cred.credentials?.extra_fields || []).map(f => `
       <div class="vault-field">
         <span class="vault-field-label">${this.escapeHtml(f.key)}</span>
         <span class="vault-field-value">${this.escapeHtml(f.value)}</span>
         <div class="vault-field-actions">
-          <button class="vault-btn-icon" onclick="vault.copyText('${this.escapeAttr(f.value)}')" title="Copy">
+          <button class="vault-btn-icon" onclick="vault.copyText('${this.escapeAttr(f.value)}')" title="Sao chép">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="9" y="9" width="13" height="13" rx="2"></rect>
               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
@@ -204,10 +205,10 @@ class VaultApp {
           <span class="vault-status-badge ${statusClass}">${statusLabel}</span>
         </div>
         <div class="vault-field">
-          <span class="vault-field-label">Username</span>
+          <span class="vault-field-label">Tài khoản</span>
           <span class="vault-field-value">${this.escapeHtml(cred.credentials?.username || '')}</span>
           <div class="vault-field-actions">
-            <button class="vault-btn-icon" onclick="vault.copyText('${this.escapeAttr(cred.credentials?.username || '')}')" title="Copy username">
+            <button class="vault-btn-icon" onclick="vault.copyText('${this.escapeAttr(cred.credentials?.username || '')}')" title="Sao chép tài khoản">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="9" y="9" width="13" height="13" rx="2"></rect>
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
@@ -216,16 +217,16 @@ class VaultApp {
           </div>
         </div>
         <div class="vault-field">
-          <span class="vault-field-label">Password</span>
+          <span class="vault-field-label">Mật khẩu</span>
           <span class="vault-field-value" id="pwd-${cred._id}">••••••••</span>
           <div class="vault-field-actions">
-            <button class="vault-btn-icon" onclick="vault.togglePassword('${cred._id}')" title="Show password" id="pwd-toggle-${cred._id}">
+            <button class="vault-btn-icon" onclick="vault.togglePassword('${cred._id}')" title="Hiện mật khẩu" id="pwd-toggle-${cred._id}">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                 <circle cx="12" cy="12" r="3"></circle>
               </svg>
             </button>
-            <button class="vault-btn-icon" onclick="vault.copyPassword('${cred._id}')" title="Copy password">
+            <button class="vault-btn-icon" onclick="vault.copyPassword('${cred._id}')" title="Sao chép mật khẩu">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="9" y="9" width="13" height="13" rx="2"></rect>
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
@@ -241,7 +242,7 @@ class VaultApp {
               <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
               <line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line>
             </svg>
-            Report Issue
+            Báo lỗi
           </button>
         </div>
       </div>
@@ -257,7 +258,7 @@ class VaultApp {
     return `
       <button class="vault-guide-toggle" onclick="vault.toggleGuide('${guideId}', this)">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
-        Service Guide
+        Hướng dẫn sử dụng
       </button>
       <div class="vault-guide-body" id="${guideId}">
         <div class="vault-guide-content">${html}</div>
@@ -292,7 +293,7 @@ class VaultApp {
         el.dataset.visible = 'false';
       }, 10000);
     } catch (error) {
-      this.showToast(error.message || 'Failed to fetch password', 'error');
+      this.showToast(error.message || 'Không thể lấy mật khẩu', 'error');
     }
   }
 
@@ -302,15 +303,15 @@ class VaultApp {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
       this.clipboardWrite(data.password);
-      this.showToast('Password copied', 'success');
+      this.showToast('Đã sao chép mật khẩu', 'success');
     } catch (error) {
-      this.showToast(error.message || 'Failed to copy password', 'error');
+      this.showToast(error.message || 'Không thể sao chép mật khẩu', 'error');
     }
   }
 
   copyText(text) {
     this.clipboardWrite(text);
-    this.showToast('Copied to clipboard', 'success');
+    this.showToast('Đã sao chép', 'success');
   }
 
   clipboardWrite(text) {
@@ -342,16 +343,16 @@ class VaultApp {
       const response = await fetch(`/api/vault/credentials/${this.reportingCredentialId}/report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: message || 'Credential not working' })
+        body: JSON.stringify({ message: message || 'Tài khoản không hoạt động' })
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
 
-      this.showToast('Issue reported successfully', 'success');
+      this.showToast('Đã gửi báo lỗi thành công', 'success');
       this.closeModal('reportModal');
       await this.loadData();
     } catch (error) {
-      this.showToast(error.message || 'Failed to report', 'error');
+      this.showToast(error.message || 'Không thể gửi báo lỗi', 'error');
     }
   }
 
