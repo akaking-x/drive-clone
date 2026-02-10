@@ -523,9 +523,69 @@ html, body {
   }
 }
 
+/* ========== Collapsible guide ========== */
+.vault-guide-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 16px;
+  margin-top: 12px;
+  background: var(--white);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.vault-guide-toggle:hover {
+  background: var(--bg-color);
+}
+
+.vault-guide-toggle svg {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.vault-guide-toggle.open svg {
+  transform: rotate(90deg);
+}
+
+.vault-guide-body {
+  display: none;
+  margin-top: 0;
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+}
+
+.vault-guide-body.open {
+  display: block;
+}
+
+.vault-guide-toggle.open {
+  border-radius: 12px 12px 0 0;
+  margin-bottom: 0;
+  border-bottom: none;
+}
+
+.vault-guide-body.open {
+  background: var(--white);
+  border: 1px solid var(--border-color);
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  padding: 12px 16px 16px;
+}
+
 /* ========== iOS smooth scroll ========== */
 @supports (-webkit-overflow-scrolling: touch) {
-  .vault-sidebar,
   .vault-content-area {
     -webkit-transform: translateZ(0);
     transform: translateZ(0);

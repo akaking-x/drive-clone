@@ -163,7 +163,7 @@ class VaultApp {
             ${this.escapeHtml(group.service?.name || 'Unknown Service')}
           </div>
           ${group.creds.map(c => this.renderCard(c)).join('')}
-          ${group.service?.guide_text ? this.renderGuide(group.service.guide_text) : ''}
+          ${group.service?.guide_text ? this.renderGuide(group.service.guide_text, group.service._id) : ''}
         </div>
       `).join('');
     } else {
@@ -171,7 +171,7 @@ class VaultApp {
       container.innerHTML = `
         <div class="vault-service-section">
           ${creds.map(c => this.renderCard(c)).join('')}
-          ${svc?.guide_text ? this.renderGuide(svc.guide_text) : ''}
+          ${svc?.guide_text ? this.renderGuide(svc.guide_text, svc._id) : ''}
         </div>
       `;
     }
@@ -248,18 +248,28 @@ class VaultApp {
     `;
   }
 
-  renderGuide(text) {
-    // Simple markdown-like rendering
+  renderGuide(text, serviceId) {
     const html = this.escapeHtml(text)
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/`(.*?)`/g, '<code>$1</code>')
       .replace(/\n/g, '<br>');
+    const guideId = `guide-${serviceId || 'default'}`;
     return `
-      <div class="vault-guide">
-        <div class="vault-guide-title">Service Guide</div>
+      <button class="vault-guide-toggle" onclick="vault.toggleGuide('${guideId}', this)">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+        Service Guide
+      </button>
+      <div class="vault-guide-body" id="${guideId}">
         <div class="vault-guide-content">${html}</div>
       </div>
     `;
+  }
+
+  toggleGuide(id, btn) {
+    const body = document.getElementById(id);
+    if (!body) return;
+    const isOpen = body.classList.toggle('open');
+    btn.classList.toggle('open', isOpen);
   }
 
   async togglePassword(credId) {
