@@ -704,14 +704,15 @@ class ContentManagerApp {
         });
       }
 
-      // Bind card action buttons (copy/download on thumbnail)
+      // Bind card action buttons
       grid.querySelectorAll('.cm-card-action').forEach(btn => {
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
           const action = btn.dataset.cardAction;
           const postId = btn.dataset.postId;
           if (action === 'copyAll') this.copyAllByPostId(postId, btn);
-          if (action === 'download') this.downloadByPostId(postId, btn);
+          if (action === 'dlVideo') this.downloadVideoByPostId(postId);
+          if (action === 'dlThumb') this.downloadThumbByPostId(postId);
         });
       });
 
@@ -795,13 +796,26 @@ class ContentManagerApp {
                 </div>`
             }
           </div>
+          <!-- Download progress overlay -->
+          <div class="cm-card-dl-progress" data-dl-progress="${post._id}" style="display:none;">
+            <div class="cm-card-dl-progress-info">
+              <span class="cm-card-dl-progress-label">Downloading...</span>
+              <span class="cm-card-dl-progress-pct">0%</span>
+            </div>
+            <div class="cm-card-dl-progress-bar">
+              <div class="cm-card-dl-progress-fill"></div>
+            </div>
+          </div>
           <div class="cm-post-card-actions">
+            ${hasVideo ? `<button class="cm-card-action cm-card-action-video" data-card-action="dlVideo" data-post-id="${post._id}" title="Download Video">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+            </button>` : ''}
+            ${hasThumb ? `<button class="cm-card-action cm-card-action-thumb" data-card-action="dlThumb" data-post-id="${post._id}" title="Download Thumbnail">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+            </button>` : ''}
             <button class="cm-card-action" data-card-action="copyAll" data-post-id="${post._id}" title="Copy All">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
             </button>
-            ${hasVideo ? `<button class="cm-card-action" data-card-action="download" data-post-id="${post._id}" title="Download">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            </button>` : ''}
           </div>
           <div class="cm-post-card-status ${statusClass}">${post.status}</div>
           <div class="cm-post-card-number">#${post.post_number}</div>
@@ -1644,20 +1658,12 @@ class ContentManagerApp {
   async downloadVideoOnly() {
     const post = this.posts[this.viewerIndex];
     if (!post || !post.video?.s3Key) return;
-    this.showViewerFeedback('Downloading video...');
     try {
       const res = await fetch(`/api/video-posts/${post._id}/video`);
       const data = await res.json();
       if (data.url) {
-        const blob = await fetch(data.url).then(r => r.blob());
-        const blobUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = post.video.originalName || `video-${post.post_number}.mp4`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+        const blob = await this._fetchWithProgress(data.url, post._id, 'Video');
+        this._triggerDownload(blob, post.video.originalName || `video-${post.post_number}.mp4`);
         this.showViewerFeedback('Video downloaded!');
       }
     } catch(e) {
@@ -1668,52 +1674,136 @@ class ContentManagerApp {
   async downloadThumbOnly() {
     const post = this.posts[this.viewerIndex];
     if (!post || !post.thumbnail?.s3Key) return;
-    this.showViewerFeedback('Downloading thumbnail...');
     try {
-      const res = await fetch(`/api/video-posts/${post._id}/thumbnail`);
-      const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = post.thumbnail.originalName || `thumb-${post.post_number}.jpg`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+      const blob = await this._fetchWithProgress(`/api/video-posts/${post._id}/thumbnail`, post._id, 'Thumbnail');
+      this._triggerDownload(blob, post.thumbnail.originalName || `thumb-${post.post_number}.jpg`);
       this.showViewerFeedback('Thumbnail downloaded!');
     } catch(e) {
       this.showViewerFeedback('Download failed');
     }
   }
 
+  // Download video from card
+  async downloadVideoByPostId(postId) {
+    const post = this.posts.find(p => p._id === postId);
+    if (!post || !post.video?.s3Key) return;
+    try {
+      const res = await fetch(`/api/video-posts/${postId}/video`);
+      const data = await res.json();
+      if (data.url) {
+        const blob = await this._fetchWithProgress(data.url, postId, 'Video');
+        this._triggerDownload(blob, post.video.originalName || `video-${post.post_number}.mp4`);
+        this.showToast('Video downloaded!', 'success');
+      }
+    } catch(e) {
+      this.showToast('Download failed', 'error');
+    }
+  }
+
+  // Download thumbnail from card
+  async downloadThumbByPostId(postId) {
+    const post = this.posts.find(p => p._id === postId);
+    if (!post || !post.thumbnail?.s3Key) return;
+    try {
+      const blob = await this._fetchWithProgress(`/api/video-posts/${postId}/thumbnail`, postId, 'Thumbnail');
+      this._triggerDownload(blob, post.thumbnail.originalName || `thumb-${post.post_number}.jpg`);
+      this.showToast('Thumbnail downloaded!', 'success');
+    } catch(e) {
+      this.showToast('Download failed', 'error');
+    }
+  }
+
+  // Fetch with progress tracking - shows progress on card overlay + viewer feedback
+  async _fetchWithProgress(url, postId, label) {
+    // Show card progress overlay
+    const progressEl = document.querySelector(`[data-dl-progress="${postId}"]`);
+    if (progressEl) {
+      progressEl.style.display = '';
+      progressEl.querySelector('.cm-card-dl-progress-label').textContent = `${label}...`;
+      progressEl.querySelector('.cm-card-dl-progress-pct').textContent = '0%';
+      progressEl.querySelector('.cm-card-dl-progress-fill').style.width = '0%';
+    }
+
+    // Show viewer feedback if viewer is open
+    const isViewer = document.getElementById('viewerModal')?.classList.contains('active');
+    if (isViewer) this.showViewerFeedback(`${label} 0%`);
+
+    const response = await fetch(url);
+    const contentLength = response.headers.get('content-length');
+    const total = contentLength ? parseInt(contentLength, 10) : 0;
+
+    if (!response.body || !total) {
+      // Fallback: no streaming support or unknown size
+      if (progressEl) {
+        progressEl.querySelector('.cm-card-dl-progress-pct').textContent = '...';
+        progressEl.querySelector('.cm-card-dl-progress-fill').style.width = '50%';
+      }
+      const blob = await response.blob();
+      if (progressEl) {
+        progressEl.querySelector('.cm-card-dl-progress-fill').style.width = '100%';
+        progressEl.querySelector('.cm-card-dl-progress-pct').textContent = '100%';
+        setTimeout(() => { progressEl.style.display = 'none'; }, 800);
+      }
+      return blob;
+    }
+
+    const reader = response.body.getReader();
+    let loaded = 0;
+    const chunks = [];
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      loaded += value.length;
+      const pct = Math.round((loaded / total) * 100);
+
+      if (progressEl) {
+        progressEl.querySelector('.cm-card-dl-progress-fill').style.width = pct + '%';
+        progressEl.querySelector('.cm-card-dl-progress-pct').textContent = pct + '%';
+      }
+      if (isViewer) this.showViewerFeedback(`${label} ${pct}%`);
+    }
+
+    // Done
+    if (progressEl) {
+      progressEl.querySelector('.cm-card-dl-progress-label').textContent = 'Done!';
+      progressEl.querySelector('.cm-card-dl-progress-fill').style.width = '100%';
+      progressEl.querySelector('.cm-card-dl-progress-pct').textContent = '100%';
+      setTimeout(() => { progressEl.style.display = 'none'; }, 1000);
+    }
+
+    const blob = new Blob(chunks);
+    return blob;
+  }
+
+  _triggerDownload(blob, filename) {
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+  }
+
   async _downloadPost(post) {
     try {
-      const downloads = [];
-
       // Download video
       if (post.video?.s3Key) {
         const res = await fetch(`/api/video-posts/${post._id}/video`);
         const data = await res.json();
-        if (data.url) downloads.push({ url: data.url, name: post.video.originalName || `video-${post.post_number}.mp4` });
+        if (data.url) {
+          const blob = await this._fetchWithProgress(data.url, post._id, 'Video');
+          this._triggerDownload(blob, post.video.originalName || `video-${post.post_number}.mp4`);
+        }
       }
 
       // Download thumbnail
       if (post.thumbnail?.s3Key) {
-        const res = await fetch(`/api/video-posts/${post._id}/thumbnail`);
-        const blob = await res.blob();
-        downloads.push({ blob, name: post.thumbnail.originalName || `thumb-${post.post_number}.jpg` });
-      }
-
-      for (const dl of downloads) {
-        const blob = dl.blob || await fetch(dl.url).then(r => r.blob());
-        const blobUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = dl.name;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+        const blob = await this._fetchWithProgress(`/api/video-posts/${post._id}/thumbnail`, post._id, 'Thumbnail');
+        this._triggerDownload(blob, post.thumbnail.originalName || `thumb-${post.post_number}.jpg`);
       }
 
       // Auto-copy hook + caption + tags
@@ -1760,14 +1850,6 @@ class ContentManagerApp {
     this.copyToClipboard(parts.join('\n\n'), btn);
   }
 
-  // Download from a card (by post ID)
-  async downloadByPostId(postId, btn) {
-    const post = this.posts.find(p => p._id === postId);
-    if (!post || !post.video?.s3Key) return;
-    if (btn) { btn.style.opacity = '0.5'; btn.style.pointerEvents = 'none'; }
-    await this._downloadPost(post);
-    if (btn) { btn.style.opacity = ''; btn.style.pointerEvents = ''; }
-  }
 
   // Viewer inline feedback (replaces toast for viewer actions)
   showViewerFeedback(text) {

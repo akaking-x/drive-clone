@@ -1081,6 +1081,53 @@ html, body {
   opacity: 0.3;
 }
 
+/* Card download progress overlay */
+.cm-card-dl-progress {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: rgba(0,0,0,0.8);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  padding: 8px 10px;
+  z-index: 4;
+  animation: cm-popup-in 0.15s ease;
+}
+.cm-card-dl-progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+.cm-card-dl-progress-label {
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+}
+.cm-card-dl-progress-pct {
+  color: var(--cm-accent);
+  font-size: 11px;
+  font-weight: 700;
+}
+.cm-card-dl-progress-bar {
+  height: 4px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.cm-card-dl-progress-fill {
+  height: 100%;
+  background: var(--cm-accent);
+  border-radius: 2px;
+  width: 0;
+  transition: width 0.2s ease;
+}
+
+/* Post card action button colors */
+.cm-card-action-video { background: rgba(52,168,83,0.7); }
+.cm-card-action-video:hover { background: rgba(52,168,83,0.95); }
+.cm-card-action-thumb { background: rgba(66,133,244,0.7); }
+.cm-card-action-thumb:hover { background: rgba(66,133,244,0.95); }
+
 /* Post card overlay actions */
 .cm-post-card-actions {
   position: absolute;
