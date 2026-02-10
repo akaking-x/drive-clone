@@ -264,7 +264,7 @@ class ContentManagerApp {
   fillTemplate() {
     const raw = document.getElementById('inputRawText');
     const current = raw.value.trim();
-    if (current && !confirm('This will replace current raw text with the template. Continue?')) return;
+    if (current && !confirm('Thao tác này sẽ thay thế nội dung hiện tại bằng mẫu. Tiếp tục?')) return;
     raw.value = 'Hook: \nCaption: \nHashtags: ';
     raw.focus();
     raw.setSelectionRange(6, 6); // cursor after "Hook: "
@@ -416,13 +416,13 @@ class ContentManagerApp {
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--success-color)" stroke-width="2">
           <polyline points="20 6 9 17 4 12"></polyline>
         </svg>
-        <span style="font-size:12px;">${files.length} file(s) detected</span>
+        <span style="font-size:12px;">${files.length} tệp được nhận diện</span>
         <div class="cm-batch-upload-summary">${tags.join('')}</div>
       `;
     }
 
     if (unmatched.length > 0) {
-      this.showToast(`${unmatched.length} file(s) not recognized`, 'warning');
+      this.showToast(`${unmatched.length} tệp không nhận diện được`, 'warning');
     }
   }
 
@@ -442,7 +442,7 @@ class ContentManagerApp {
       if (result.caption !== null) document.getElementById('inputCaption').value = result.caption;
       if (result.hashtags !== null) document.getElementById('inputHashtags').value = result.hashtags;
     };
-    reader.onerror = () => this.showToast('Failed to read text file', 'error');
+    reader.onerror = () => this.showToast('Không thể đọc tệp văn bản', 'error');
     reader.readAsText(file, 'utf-8');
   }
 
@@ -482,12 +482,12 @@ class ContentManagerApp {
     if (hasCaption) result.caption = fieldMap.caption;
     if (hasHashtags) result.hashtags = fieldMap.hashtags;
 
-    if (!hasHook) { result.valid = false; result.errors.push('Missing "Hook:" field'); }
-    if (!hasCaption) { result.valid = false; result.errors.push('Missing "Caption:" field'); }
+    if (!hasHook) { result.valid = false; result.errors.push('Thiếu trường "Hook:"'); }
+    if (!hasCaption) { result.valid = false; result.errors.push('Thiếu trường "Caption:"'); }
 
     // If no structured labels found at all, treat as raw-only
     if (!hasHook && !hasCaption && !hasHashtags) {
-      result.errors = ['No structured labels found (Hook: / Caption: / Hashtags:). Content loaded as raw text only.'];
+      result.errors = ['Không tìm thấy nhãn cấu trúc (Hook: / Caption: / Hashtags:). Nội dung được tải dạng văn bản gốc.'];
       result.caption = text; // fallback
     }
 
@@ -503,19 +503,19 @@ class ContentManagerApp {
 
     let html = '';
     if (result.valid) {
-      html += '<div><strong>TXT validated</strong></div>';
+      html += '<div><strong>TXT hợp lệ</strong></div>';
       html += `<div class="cm-txt-field-ok">Hook: ${this.escapeHtml((result.hook || '').substring(0, 60))}${(result.hook || '').length > 60 ? '...' : ''}</div>`;
       html += `<div class="cm-txt-field-ok">Caption: ${this.escapeHtml((result.caption || '').substring(0, 60))}${(result.caption || '').length > 60 ? '...' : ''}</div>`;
       if (result.fields.hashtags) {
         html += `<div class="cm-txt-field-ok">Hashtags: ${this.escapeHtml((result.hashtags || '').substring(0, 60))}</div>`;
       } else {
-        html += `<div class="cm-txt-field-miss">Hashtags: (optional, not found)</div>`;
+        html += `<div class="cm-txt-field-miss">Hashtags: (tùy chọn, không tìm thấy)</div>`;
       }
     } else {
-      html += '<div><strong>TXT validation failed</strong></div>';
+      html += '<div><strong>TXT không hợp lệ</strong></div>';
       result.errors.forEach(err => { html += `<div>${this.escapeHtml(err)}</div>`; });
-      if (result.fields.hook) html += `<div class="cm-txt-field-ok">Hook: found</div>`;
-      if (result.fields.caption) html += `<div class="cm-txt-field-ok">Caption: found</div>`;
+      if (result.fields.hook) html += `<div class="cm-txt-field-ok">Hook: tìm thấy</div>`;
+      if (result.fields.caption) html += `<div class="cm-txt-field-ok">Caption: tìm thấy</div>`;
     }
 
     el.innerHTML = html;
@@ -618,8 +618,8 @@ class ContentManagerApp {
       document.getElementById('myContentCount').textContent = myContents.length;
       document.getElementById('collabContentCount').textContent = collabContents.length;
 
-      myList.innerHTML = myContents.map(c => this.renderContentItem(c)).join('') || '<div style="padding:8px 12px;font-size:12px;color:var(--text-secondary)">No content yet</div>';
-      collabList.innerHTML = collabContents.map(c => this.renderContentItem(c)).join('') || '<div style="padding:8px 12px;font-size:12px;color:var(--text-secondary)">No collaborations</div>';
+      myList.innerHTML = myContents.map(c => this.renderContentItem(c)).join('') || '<div style="padding:8px 12px;font-size:12px;color:var(--text-secondary)">Chưa có nội dung</div>';
+      collabList.innerHTML = collabContents.map(c => this.renderContentItem(c)).join('') || '<div style="padding:8px 12px;font-size:12px;color:var(--text-secondary)">Chưa có cộng tác</div>';
 
       // Bind content items
       document.querySelectorAll('.cm-content-item').forEach(item => {
@@ -676,7 +676,7 @@ class ContentManagerApp {
     // Load content details
     const res = await fetch(`/api/content/${contentId}`);
     const data = await res.json();
-    if (!data.success) { this.showToast(data.error || 'Error', 'error'); return; }
+    if (!data.success) { this.showToast(data.error || 'Lỗi', 'error'); return; }
 
     this.currentContent = data.content;
     this.isOwner = data.isOwner;
@@ -829,6 +829,11 @@ class ContentManagerApp {
     }
   }
 
+  _statusLabel(status) {
+    const map = { draft: 'Nháp', done: 'Xong', posted: 'Đã đăng', hidden: 'Ẩn' };
+    return map[status] || status;
+  }
+
   renderPostCard(post, index) {
     const statusClass = `cm-status-${post.status}`;
     const hookText = post.text_content?.hook || post.text_content?.caption || '';
@@ -849,7 +854,7 @@ class ContentManagerApp {
           <!-- Download progress overlay -->
           <div class="cm-card-dl-progress" data-dl-progress="${post._id}" style="display:none;">
             <div class="cm-card-dl-progress-info">
-              <span class="cm-card-dl-progress-label">Downloading...</span>
+              <span class="cm-card-dl-progress-label">Đang tải...</span>
               <span class="cm-card-dl-progress-pct">0%</span>
             </div>
             <div class="cm-card-dl-progress-bar">
@@ -867,7 +872,7 @@ class ContentManagerApp {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
             </button>
           </div>
-          <div class="cm-post-card-status ${statusClass}">${post.status}</div>
+          <div class="cm-post-card-status ${statusClass}">${this._statusLabel(post.status)}</div>
           <div class="cm-post-card-number">#${post.post_number}</div>
           ${hookText ? `<div class="cm-post-card-footer"><div class="cm-post-card-hook">${this.escapeHtml(hookText)}</div></div>` : ''}
         </div>
@@ -913,9 +918,9 @@ class ContentManagerApp {
     // Meta
     document.getElementById('viewerPostNum').textContent = `#${post.post_number}`;
     const statusEl = document.getElementById('viewerStatus');
-    statusEl.textContent = post.status;
+    statusEl.textContent = this._statusLabel(post.status);
     statusEl.className = `cm-v-status cm-status-${post.status}`;
-    document.getElementById('viewerUploader').textContent = `@${post.uploaded_by?.username || 'unknown'}`;
+    document.getElementById('viewerUploader').textContent = `@${post.uploaded_by?.username || 'ẩn danh'}`;
 
     // Text
     const tc = post.text_content || {};
@@ -1020,7 +1025,7 @@ class ContentManagerApp {
 
   async createContent() {
     const name = document.getElementById('inputContentName').value.trim();
-    if (!name) { this.showToast('Content name is required', 'error'); return; }
+    if (!name) { this.showToast('Tên nội dung là bắt buộc', 'error'); return; }
 
     const tags = document.getElementById('inputTags').value.split(',').map(t => t.trim()).filter(Boolean);
     const links = document.getElementById('inputRefLinks').value.split('\n').map(l => l.trim()).filter(Boolean);
@@ -1042,9 +1047,9 @@ class ContentManagerApp {
       this.closeModal('createContentModal');
       await this.loadContents(false);
       this.selectContent(data.content._id);
-      this.showToast('Content created', 'success');
+      this.showToast('Đã tạo nội dung', 'success');
     } else {
-      this.showToast(data.error || 'Error', 'error');
+      this.showToast(data.error || 'Lỗi', 'error');
     }
   }
 
@@ -1143,15 +1148,15 @@ class ContentManagerApp {
       document.getElementById(id).value = '';
     });
     // Reset individual dropzones
-    document.getElementById('videoDropContent').innerHTML = '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg><span>Drop video or click</span><small>MP4, MOV, WebM</small>';
-    document.getElementById('thumbDropContent').innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg><span>Thumbnail</span><small>JPG, PNG</small>';
-    document.getElementById('txtDropContent').innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg><span>Text File</span><small>TXT</small>';
+    document.getElementById('videoDropContent').innerHTML = '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg><span>Kéo thả video hoặc bấm</span><small>MP4, MOV, WebM</small>';
+    document.getElementById('thumbDropContent').innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg><span>Ảnh bìa</span><small>JPG, PNG</small>';
+    document.getElementById('txtDropContent').innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg><span>Tệp văn bản</span><small>TXT</small>';
     ['videoDropzone', 'thumbDropzone', 'txtDropzone'].forEach(id => {
       document.getElementById(id).classList.remove('has-file');
     });
     // Reset batch zone
     document.getElementById('batchDropzone').classList.remove('has-file');
-    document.getElementById('batchDropContent').innerHTML = '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg><span>Drop all files here or click to select</span><small>Select video + thumbnail + txt in one go</small>';
+    document.getElementById('batchDropContent').innerHTML = '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg><span>Kéo thả tệp vào đây hoặc bấm để chọn</span><small>Chọn video + ảnh bìa + txt cùng lúc</small>';
     // Reset validation & text fields
     document.getElementById('txtValidation').style.display = 'none';
     ['inputHook', 'inputCaption', 'inputHashtags', 'inputRawText', 'inputNotes'].forEach(id => {
@@ -1169,13 +1174,13 @@ class ContentManagerApp {
     const txtFile = document.getElementById('txtInput').files[0];
 
     if (!videoFile && !thumbFile && !txtFile) {
-      this.showToast('Please select at least one file (video, thumbnail, or text)', 'error');
+      this.showToast('Vui lòng chọn ít nhất một tệp (video, ảnh bìa, hoặc văn bản)', 'error');
       return;
     }
 
     // Show progress
     document.getElementById('uploadProgress').style.display = '';
-    document.getElementById('uploadProgressText').textContent = 'Requesting upload URLs...';
+    document.getElementById('uploadProgressText').textContent = 'Đang yêu cầu URL tải lên...';
     document.getElementById('uploadProgressFill').style.width = '0%';
 
     try {
@@ -1192,7 +1197,7 @@ class ContentManagerApp {
       });
       const presignData = await presignRes.json();
       if (!presignData.success) {
-        throw new Error(presignData.error || 'Failed to get upload URLs');
+        throw new Error(presignData.error || 'Không thể lấy URL tải lên');
       }
 
       const { postNumber, presigned } = presignData;
@@ -1209,7 +1214,7 @@ class ContentManagerApp {
         const pct = totalBytes > 0 ? Math.round((loaded / totalBytes) * 100) : 0;
         document.getElementById('uploadProgressFill').style.width = pct + '%';
         document.getElementById('uploadProgressText').textContent =
-          pct < 100 ? `Uploading to S3... ${pct}%` : 'Finalizing...';
+          pct < 100 ? `Đang tải lên... ${pct}%` : 'Đang hoàn tất...';
       };
 
       for (const [field, info] of Object.entries(presigned)) {
@@ -1251,7 +1256,7 @@ class ContentManagerApp {
       console.log('[CM] All S3 uploads complete');
 
       // Step 3: Confirm with server to create DB record
-      document.getElementById('uploadProgressText').textContent = 'Saving post...';
+      document.getElementById('uploadProgressText').textContent = 'Đang lưu bài đăng...';
 
       const confirmBody = {
         content_id: this.currentContentId,
@@ -1286,13 +1291,13 @@ class ContentManagerApp {
         this.closeModal('uploadPostModal');
         await this.loadPosts();
         await this.loadContents(false);
-        this.showToast('Post uploaded', 'success');
+        this.showToast('Đã tải lên bài đăng', 'success');
       } else {
-        this.showToast(result.error || 'Upload failed', 'error');
+        this.showToast(result.error || 'Tải lên thất bại', 'error');
       }
     } catch (error) {
       console.error('[CM] Upload failed:', error);
-      this.showToast('Upload failed: ' + error.message, 'error');
+      this.showToast('Tải lên thất bại: ' + error.message, 'error');
     } finally {
       document.getElementById('uploadProgress').style.display = 'none';
     }
@@ -1304,7 +1309,7 @@ class ContentManagerApp {
     await this._updatePostStatus(post, status);
     this.updateViewer(post);
     const isViewer = document.getElementById('viewerModal')?.classList.contains('active');
-    if (isViewer) this.showViewerFeedback(status.toUpperCase());
+    if (isViewer) this.showViewerFeedback(this._statusLabel(status).toUpperCase());
   }
 
   async _updatePostStatus(post, status) {
@@ -1320,7 +1325,7 @@ class ContentManagerApp {
       if (card) {
         const badge = card.querySelector('.cm-post-card-status');
         badge.className = `cm-post-card-status cm-status-${status}`;
-        badge.textContent = status;
+        badge.textContent = this._statusLabel(status);
       }
     }
     return data;
@@ -1344,13 +1349,13 @@ class ContentManagerApp {
     ['draft', 'done', 'posted', 'hidden'].forEach(s => {
       const btn = document.createElement('button');
       btn.className = 'cm-status-popup-btn' + (post.status === s ? ' active' : '');
-      btn.textContent = s;
+      btn.textContent = this._statusLabel(s);
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
         await this._updatePostStatus(post, s);
         popup.remove();
         card.classList.remove('cm-popup-open');
-        this.showToast(`Status: ${s}`, 'success');
+        this.showToast(`Trạng thái: ${this._statusLabel(s)}`, 'success');
       });
       popup.appendChild(btn);
     });
@@ -1374,7 +1379,7 @@ class ContentManagerApp {
 
   async deletePost() {
     const post = this.posts[this.viewerIndex];
-    if (!post || !confirm('Delete this post? This cannot be undone.')) return;
+    if (!post || !confirm('Xóa bài đăng này? Không thể hoàn tác.')) return;
 
     const res = await fetch(`/api/video-posts/${post._id}`, { method: 'DELETE' });
     const data = await res.json();
@@ -1382,9 +1387,9 @@ class ContentManagerApp {
       this.closeModal('viewerModal');
       await this.loadPosts();
       await this.loadContents(false);
-      this.showToast('Post deleted', 'success');
+      this.showToast('Đã xóa bài đăng', 'success');
     } else {
-      this.showToast(data.error || 'Delete failed', 'error');
+      this.showToast(data.error || 'Xóa thất bại', 'error');
     }
   }
 
@@ -1430,9 +1435,9 @@ class ContentManagerApp {
     // Show feedback
     const isViewer = document.getElementById('viewerModal')?.classList.contains('active');
     if (isViewer) {
-      this.showViewerFeedback(`Copied ${label || ''}!`);
+      this.showViewerFeedback(`Đã sao chép ${label || ''}!`);
     } else {
-      this.showToast('Copied!', 'success');
+      this.showToast('Đã sao chép!', 'success');
     }
   }
 
@@ -1460,13 +1465,13 @@ class ContentManagerApp {
     const list = document.getElementById('collabList');
     const collabs = this.currentContent?.collaborators || [];
     if (collabs.length === 0) {
-      list.innerHTML = '<div style="font-size:12px;color:var(--text-secondary);padding:8px 0;">No collaborators</div>';
+      list.innerHTML = '<div style="font-size:12px;color:var(--text-secondary);padding:8px 0;">Chưa có cộng tác viên</div>';
       return;
     }
     list.innerHTML = collabs.map(c => `
       <div class="cm-collab-item">
-        <span>${this.escapeHtml(c.user_id?.username || 'Unknown')} (${c.role}) - ${c.status}</span>
-        ${this.isOwner ? `<button class="cm-btn-sm cm-btn-danger" onclick="app.removeCollab('${c.user_id?._id}')">Remove</button>` : ''}
+        <span>${this.escapeHtml(c.user_id?.username || 'Không rõ')} (${c.role}) - ${c.status}</span>
+        ${this.isOwner ? `<button class="cm-btn-sm cm-btn-danger" onclick="app.removeCollab('${c.user_id?._id}')">Xóa</button>` : ''}
       </div>
     `).join('');
   }
@@ -1488,21 +1493,21 @@ class ContentManagerApp {
       const r = await fetch(`/api/content/${this.currentContentId}`);
       const d = await r.json();
       if (d.success) { this.currentContent = d.content; this.renderCollaborators(); }
-      this.showToast('Invitation sent', 'success');
+      this.showToast('Đã gửi lời mời', 'success');
     } else {
-      this.showToast(data.error || 'Error', 'error');
+      this.showToast(data.error || 'Lỗi', 'error');
     }
   }
 
   async removeCollab(userId) {
-    if (!confirm('Remove this collaborator?')) return;
+    if (!confirm('Xóa cộng tác viên này?')) return;
     const res = await fetch(`/api/content/${this.currentContentId}/collaborators/${userId}`, { method: 'DELETE' });
     const data = await res.json();
     if (data.success) {
       const r = await fetch(`/api/content/${this.currentContentId}`);
       const d = await r.json();
       if (d.success) { this.currentContent = d.content; this.renderCollaborators(); }
-      this.showToast('Removed', 'success');
+      this.showToast('Đã xóa', 'success');
     }
   }
 
@@ -1514,15 +1519,15 @@ class ContentManagerApp {
       if (data.success && data.logs.length > 0) {
         log.innerHTML = data.logs.map(l => `
           <div class="cm-activity-item">
-            <strong>${this.escapeHtml(l.actor_id?.username || 'Unknown')}</strong> ${this.escapeHtml(l.action)} - ${this.escapeHtml(l.details || '')}
+            <strong>${this.escapeHtml(l.actor_id?.username || 'Không rõ')}</strong> ${this.escapeHtml(l.action)} - ${this.escapeHtml(l.details || '')}
             <br><small>${new Date(l.createdAt).toLocaleString()}</small>
           </div>
         `).join('');
       } else {
-        log.innerHTML = '<div class="cm-activity-empty">No activity yet</div>';
+        log.innerHTML = '<div class="cm-activity-empty">Chưa có hoạt động</div>';
       }
     } catch(e) {
-      log.innerHTML = '<div class="cm-activity-empty">Failed to load</div>';
+      log.innerHTML = '<div class="cm-activity-empty">Không thể tải</div>';
     }
   }
 
@@ -1547,14 +1552,14 @@ class ContentManagerApp {
       this.currentContent = data.content;
       document.getElementById('headerTitle').textContent = data.content.content_name;
       await this.loadContents(false);
-      this.showToast('Saved', 'success');
+      this.showToast('Đã lưu', 'success');
     } else {
-      this.showToast(data.error || 'Error', 'error');
+      this.showToast(data.error || 'Lỗi', 'error');
     }
   }
 
   async deleteContent() {
-    if (!confirm('Delete this content and ALL its posts? This cannot be undone.')) return;
+    if (!confirm('Xóa nội dung này và TẤT CẢ bài đăng? Không thể hoàn tác.')) return;
 
     const res = await fetch(`/api/content/${this.currentContentId}`, { method: 'DELETE' });
     const data = await res.json();
@@ -1564,15 +1569,15 @@ class ContentManagerApp {
       this.currentContentId = null;
       this.currentContent = null;
       this.posts = [];
-      document.getElementById('headerTitle').textContent = 'Select or Create Content';
+      document.getElementById('headerTitle').textContent = 'Chọn hoặc tạo nội dung';
       document.getElementById('welcomeState').style.display = '';
       document.getElementById('postGrid').style.display = 'none';
       document.getElementById('btnUploadPost').style.display = 'none';
       document.getElementById('btnContentSettings').style.display = 'none';
       await this.loadContents(false);
-      this.showToast('Content deleted', 'success');
+      this.showToast('Đã xóa nội dung', 'success');
     } else {
-      this.showToast(data.error || 'Error', 'error');
+      this.showToast(data.error || 'Lỗi', 'error');
     }
   }
 
@@ -1593,15 +1598,15 @@ class ContentManagerApp {
     if (reqData.success && reqData.requests.length > 0) {
       reqList.innerHTML = reqData.requests.map(r => `
         <div class="cm-follow-request-item">
-          <span>${this.escapeHtml(r.requester_id?.username || 'Unknown')}</span>
+          <span>${this.escapeHtml(r.requester_id?.username || 'Không rõ')}</span>
           <div style="display:flex;gap:4px;">
-            <button class="cm-btn-sm cm-btn-primary" onclick="app.respondFollow('${r._id}', true)">Accept</button>
-            <button class="cm-btn-sm cm-btn-secondary" onclick="app.respondFollow('${r._id}', false)">Decline</button>
+            <button class="cm-btn-sm cm-btn-primary" onclick="app.respondFollow('${r._id}', true)">Chấp nhận</button>
+            <button class="cm-btn-sm cm-btn-secondary" onclick="app.respondFollow('${r._id}', false)">Từ chối</button>
           </div>
         </div>
       `).join('');
     } else {
-      reqList.innerHTML = '<div style="padding:8px 0;font-size:12px;color:var(--text-secondary)">No pending requests</div>';
+      reqList.innerHTML = '<div style="padding:8px 0;font-size:12px;color:var(--text-secondary)">Không có yêu cầu chờ</div>';
     }
 
     // Following
@@ -1611,12 +1616,12 @@ class ContentManagerApp {
     if (fData.success && fData.following.length > 0) {
       fList.innerHTML = fData.following.map(f => `
         <div class="cm-following-item">
-          <span style="cursor:pointer;" onclick="app.viewFollowedContent('${f.target_id?._id}', '${this.escapeHtml(f.target_id?.username || '')}')">${this.escapeHtml(f.target_id?.username || 'Unknown')}</span>
-          <button class="cm-btn-sm cm-btn-secondary" onclick="app.unfollow('${f.target_id?._id}')">Unfollow</button>
+          <span style="cursor:pointer;" onclick="app.viewFollowedContent('${f.target_id?._id}', '${this.escapeHtml(f.target_id?.username || '')}')">${this.escapeHtml(f.target_id?.username || 'Không rõ')}</span>
+          <button class="cm-btn-sm cm-btn-secondary" onclick="app.unfollow('${f.target_id?._id}')">Bỏ theo dõi</button>
         </div>
       `).join('');
     } else {
-      fList.innerHTML = '<div style="padding:8px 0;font-size:12px;color:var(--text-secondary)">Not following anyone</div>';
+      fList.innerHTML = '<div style="padding:8px 0;font-size:12px;color:var(--text-secondary)">Chưa theo dõi ai</div>';
     }
   }
 
@@ -1630,9 +1635,9 @@ class ContentManagerApp {
       results.innerHTML = data.users.map(u => `
         <div class="cm-user-result-item">
           <span>${this.escapeHtml(u.username)}</span>
-          <button class="cm-btn-sm cm-btn-primary" onclick="app.sendFollowRequest('${u._id}')">Follow</button>
+          <button class="cm-btn-sm cm-btn-primary" onclick="app.sendFollowRequest('${u._id}')">Theo dõi</button>
         </div>
-      `).join('') || '<div style="padding:8px;font-size:12px;color:var(--text-secondary)">No users found</div>';
+      `).join('') || '<div style="padding:8px;font-size:12px;color:var(--text-secondary)">Không tìm thấy người dùng</div>';
     }
   }
 
@@ -1644,9 +1649,9 @@ class ContentManagerApp {
     });
     const data = await res.json();
     if (data.success) {
-      this.showToast('Follow request sent', 'success');
+      this.showToast('Đã gửi yêu cầu theo dõi', 'success');
     } else {
-      this.showToast(data.error || 'Error', 'error');
+      this.showToast(data.error || 'Lỗi', 'error');
     }
   }
 
@@ -1658,21 +1663,21 @@ class ContentManagerApp {
     });
     const data = await res.json();
     if (data.success) {
-      this.showToast(accept ? 'Accepted' : 'Declined', 'success');
+      this.showToast(accept ? 'Đã chấp nhận' : 'Đã từ chối', 'success');
       await this.loadFollowData();
     }
   }
 
   async unfollow(targetId) {
-    if (!confirm('Unfollow this user?')) return;
+    if (!confirm('Bỏ theo dõi người dùng này?')) return;
     await fetch(`/api/follows/${targetId}`, { method: 'DELETE' });
     await this.loadFollowData();
-    this.showToast('Unfollowed', 'success');
+    this.showToast('Đã bỏ theo dõi', 'success');
   }
 
   async viewFollowedContent(userId, username) {
     this.closeModal('exploreModal');
-    document.getElementById('followedContentTitle').textContent = `${username}'s Content`;
+    document.getElementById('followedContentTitle').textContent = `Nội dung của ${username}`;
 
     const res = await fetch(`/api/follows/${userId}/content`);
     const data = await res.json();
@@ -1682,11 +1687,11 @@ class ContentManagerApp {
       list.innerHTML = data.contents.map(c => `
         <div class="cm-followed-content-item" onclick="app.viewFollowedPosts('${c._id}', '${this.escapeHtml(c.content_name)}')">
           <h4>${this.escapeHtml(c.content_name)}</h4>
-          <p>${c.post_count || 0} posts - ${c.category || 'No category'}</p>
+          <p>${c.post_count || 0} bài đăng - ${c.category || 'Chưa phân loại'}</p>
         </div>
       `).join('');
     } else {
-      list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-secondary)">No public content</div>';
+      list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-secondary)">Không có nội dung công khai</div>';
     }
 
     this.openModal('followedContentModal');
@@ -1699,13 +1704,13 @@ class ContentManagerApp {
 
     const res = await fetch(`/api/content/${contentId}`);
     const data = await res.json();
-    if (!data.success) { this.showToast(data.error || 'Error', 'error'); return; }
+    if (!data.success) { this.showToast(data.error || 'Lỗi', 'error'); return; }
 
     this.currentContent = data.content;
     this.isOwner = data.isOwner;
     this.isEditor = false;
 
-    document.getElementById('headerTitle').textContent = name + ' (Read-only)';
+    document.getElementById('headerTitle').textContent = name + ' (Chỉ xem)';
     document.getElementById('btnUploadPost').style.display = 'none';
     document.getElementById('btnContentSettings').style.display = 'none';
     document.getElementById('welcomeState').style.display = 'none';
@@ -1726,14 +1731,14 @@ class ContentManagerApp {
       list.innerHTML = data.notifications.map(n => `
         <div class="cm-notification-item ${n.is_read ? '' : 'unread'}">
           <div class="cm-notification-item-text">
-            <strong>${this.escapeHtml(n.from_user_id?.username || 'System')}</strong>
+            <strong>${this.escapeHtml(n.from_user_id?.username || 'Hệ thống')}</strong>
             ${this.escapeHtml(n.message)}
           </div>
           <div class="cm-notification-item-time">${this.timeAgo(n.createdAt)}</div>
         </div>
       `).join('');
     } else {
-      list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-secondary)">No notifications</div>';
+      list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-secondary)">Không có thông báo</div>';
     }
   }
 
@@ -1745,7 +1750,7 @@ class ContentManagerApp {
     });
     document.getElementById('notifBadge').style.display = 'none';
     document.querySelectorAll('.cm-notification-item.unread').forEach(el => el.classList.remove('unread'));
-    this.showToast('All marked as read', 'success');
+    this.showToast('Đã đánh dấu tất cả đã đọc', 'success');
   }
 
   startNotifPolling() {
@@ -1830,7 +1835,7 @@ class ContentManagerApp {
   async downloadVideo() {
     const post = this.posts[this.viewerIndex];
     if (!post || !post.video?.s3Key) return;
-    this.showViewerFeedback('Downloading...');
+    this.showViewerFeedback('Đang tải...');
     await this._downloadPost(post);
   }
 
@@ -1843,10 +1848,10 @@ class ContentManagerApp {
       if (data.url) {
         const blob = await this._fetchWithProgress(data.url, post._id, 'Video');
         this._triggerDownload(blob, post.video.originalName || `video-${post.post_number}.mp4`);
-        this.showViewerFeedback('Video downloaded!');
+        this.showViewerFeedback('Đã tải video!');
       }
     } catch(e) {
-      this.showViewerFeedback('Download failed');
+      this.showViewerFeedback('Tải thất bại');
     }
   }
 
@@ -1856,9 +1861,9 @@ class ContentManagerApp {
     try {
       const blob = await this._fetchWithProgress(`/api/video-posts/${post._id}/thumbnail`, post._id, 'Thumbnail');
       this._triggerDownload(blob, post.thumbnail.originalName || `thumb-${post.post_number}.jpg`);
-      this.showViewerFeedback('Thumbnail downloaded!');
+      this.showViewerFeedback('Đã tải ảnh bìa!');
     } catch(e) {
-      this.showViewerFeedback('Download failed');
+      this.showViewerFeedback('Tải thất bại');
     }
   }
 
@@ -1872,10 +1877,10 @@ class ContentManagerApp {
       if (data.url) {
         const blob = await this._fetchWithProgress(data.url, postId, 'Video');
         this._triggerDownload(blob, post.video.originalName || `video-${post.post_number}.mp4`);
-        this.showToast('Video downloaded!', 'success');
+        this.showToast('Đã tải video!', 'success');
       }
     } catch(e) {
-      this.showToast('Download failed', 'error');
+      this.showToast('Tải thất bại', 'error');
     }
   }
 
@@ -1886,9 +1891,9 @@ class ContentManagerApp {
     try {
       const blob = await this._fetchWithProgress(`/api/video-posts/${postId}/thumbnail`, postId, 'Thumbnail');
       this._triggerDownload(blob, post.thumbnail.originalName || `thumb-${post.post_number}.jpg`);
-      this.showToast('Thumbnail downloaded!', 'success');
+      this.showToast('Đã tải ảnh bìa!', 'success');
     } catch(e) {
-      this.showToast('Download failed', 'error');
+      this.showToast('Tải thất bại', 'error');
     }
   }
 
@@ -1946,7 +1951,7 @@ class ContentManagerApp {
 
     // Done
     if (progressEl) {
-      progressEl.querySelector('.cm-card-dl-progress-label').textContent = 'Done!';
+      progressEl.querySelector('.cm-card-dl-progress-label').textContent = 'Xong!';
       progressEl.querySelector('.cm-card-dl-progress-fill').style.width = '100%';
       progressEl.querySelector('.cm-card-dl-progress-pct').textContent = '100%';
       setTimeout(() => { progressEl.style.display = 'none'; }, 1000);
@@ -2007,13 +2012,13 @@ class ContentManagerApp {
 
       const isViewer = document.getElementById('viewerModal')?.classList.contains('active');
       if (isViewer) {
-        this.showViewerFeedback('Downloaded + Copied!');
+        this.showViewerFeedback('Đã tải + Sao chép!');
       } else {
-        this.showToast('Downloaded + Copied!', 'success');
+        this.showToast('Đã tải + Sao chép!', 'success');
       }
     } catch(e) {
       console.error('Download error:', e);
-      this.showToast('Download failed', 'error');
+      this.showToast('Tải thất bại', 'error');
     }
   }
 
@@ -2066,10 +2071,10 @@ class ContentManagerApp {
 
   timeAgo(date) {
     const seconds = Math.floor((Date.now() - new Date(date)) / 1000);
-    if (seconds < 60) return 'just now';
-    if (seconds < 3600) return Math.floor(seconds / 60) + 'm ago';
-    if (seconds < 86400) return Math.floor(seconds / 3600) + 'h ago';
-    return Math.floor(seconds / 86400) + 'd ago';
+    if (seconds < 60) return 'vừa xong';
+    if (seconds < 3600) return Math.floor(seconds / 60) + ' phút trước';
+    if (seconds < 86400) return Math.floor(seconds / 3600) + ' giờ trước';
+    return Math.floor(seconds / 86400) + ' ngày trước';
   }
 }
 
