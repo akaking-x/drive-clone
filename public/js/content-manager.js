@@ -559,7 +559,7 @@ class ContentManagerApp {
 
   // === Data ===
 
-  async loadContents() {
+  async loadContents(autoSelect = true) {
     try {
       const res = await fetch('/api/content');
       const data = await res.json();
@@ -567,7 +567,6 @@ class ContentManagerApp {
 
       const myList = document.getElementById('myContentList');
       const collabList = document.getElementById('collabContentList');
-      const userId = (await fetch('/api/auth/me').then(r => r.json())).username;
 
       let myContents = [];
       let collabContents = [];
@@ -598,6 +597,20 @@ class ContentManagerApp {
         const datalist = document.getElementById('categoryList');
         datalist.innerHTML = catData.categories.map(c => `<option value="${this.escapeHtml(c)}">`).join('');
       }
+
+      // Auto-select last accessed content (only on first load)
+      const allContents = [...myContents, ...collabContents];
+      if (autoSelect && !this.currentContentId && allContents.length > 0) {
+        const lastId = localStorage.getItem('cm_last_content');
+        const found = lastId && allContents.find(c => c._id === lastId);
+        if (found) {
+          this.selectContent(found._id);
+        } else {
+          // Fallback: most recently updated content
+          const sorted = allContents.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+          this.selectContent(sorted[0]._id);
+        }
+      }
     } catch (error) {
       console.error('[CM] Load contents error:', error);
     }
@@ -617,6 +630,7 @@ class ContentManagerApp {
 
   async selectContent(contentId) {
     this.currentContentId = contentId;
+    localStorage.setItem('cm_last_content', contentId);
 
     // Mark active
     document.querySelectorAll('.cm-content-item').forEach(item => {
@@ -992,7 +1006,7 @@ class ContentManagerApp {
       ['inputContentName', 'inputCategory', 'inputTags', 'inputRefLinks', 'inputDescription'].forEach(id => {
         document.getElementById(id).value = '';
       });
-      await this.loadContents();
+      await this.loadContents(false);
       this.selectContent(data.content._id);
       this.showToast('Content created', 'success');
     } else {
@@ -1148,7 +1162,7 @@ class ContentManagerApp {
       if (result.success) {
         this.closeModal('uploadPostModal');
         await this.loadPosts();
-        await this.loadContents();
+        await this.loadContents(false);
         this.showToast('Post uploaded', 'success');
       } else {
         this.showToast(result.error || 'Upload failed', 'error');
@@ -1244,7 +1258,7 @@ class ContentManagerApp {
     if (data.success) {
       this.closeModal('viewerModal');
       await this.loadPosts();
-      await this.loadContents();
+      await this.loadContents(false);
       this.showToast('Post deleted', 'success');
     } else {
       this.showToast(data.error || 'Delete failed', 'error');
@@ -1409,7 +1423,7 @@ class ContentManagerApp {
       this.closeModal('contentSettingsModal');
       this.currentContent = data.content;
       document.getElementById('headerTitle').textContent = data.content.content_name;
-      await this.loadContents();
+      await this.loadContents(false);
       this.showToast('Saved', 'success');
     } else {
       this.showToast(data.error || 'Error', 'error');
@@ -1423,6 +1437,7 @@ class ContentManagerApp {
     const data = await res.json();
     if (data.success) {
       this.closeModal('contentSettingsModal');
+      localStorage.removeItem('cm_last_content');
       this.currentContentId = null;
       this.currentContent = null;
       this.posts = [];
@@ -1431,7 +1446,7 @@ class ContentManagerApp {
       document.getElementById('postGrid').style.display = 'none';
       document.getElementById('btnUploadPost').style.display = 'none';
       document.getElementById('btnContentSettings').style.display = 'none';
-      await this.loadContents();
+      await this.loadContents(false);
       this.showToast('Content deleted', 'success');
     } else {
       this.showToast(data.error || 'Error', 'error');
