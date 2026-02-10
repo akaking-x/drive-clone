@@ -103,7 +103,28 @@ class ContentManagerApp {
     const viewerVideo = document.getElementById('viewerVideo');
     viewerVideo.addEventListener('click', (e) => {
       const video = e.target;
-      if (video.paused) video.play(); else video.pause();
+      if (video.paused) {
+        video.muted = false;
+        video.play().catch(() => {});
+        document.getElementById('viewerPlayBtn').style.display = 'none';
+      } else {
+        video.pause();
+      }
+    });
+
+    // iOS play button fallback
+    document.getElementById('viewerPlayBtn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      viewerVideo.muted = false;
+      viewerVideo.play().then(() => {
+        document.getElementById('viewerPlayBtn').style.display = 'none';
+      }).catch(() => {
+        // Last resort: try muted
+        viewerVideo.muted = true;
+        viewerVideo.play().then(() => {
+          document.getElementById('viewerPlayBtn').style.display = 'none';
+        }).catch(() => {});
+      });
     });
 
     // Video progress bar
@@ -855,15 +876,18 @@ class ContentManagerApp {
 
     // Load video URL
     if (post.video && post.video.s3Key) {
-      document.getElementById('viewerVideo').style.display = '';
+      const video = document.getElementById('viewerVideo');
+      video.style.display = '';
       document.getElementById('viewerVideoPlaceholder').style.display = 'none';
       try {
         const res = await fetch(`/api/video-posts/${post._id}/video`);
         const data = await res.json();
         if (data.url) {
-          const video = document.getElementById('viewerVideo');
           video.src = data.url;
-          video.play().catch(() => {});
+          video.load();
+          video.addEventListener('canplay', () => {
+            this._tryAutoplay(video);
+          }, { once: true });
         }
       } catch(e) {}
     } else {
@@ -962,7 +986,10 @@ class ContentManagerApp {
           .then(data => {
             if (data.url) {
               video.src = data.url;
-              video.play().catch(() => {});
+              video.load();
+              video.addEventListener('canplay', () => {
+                this._tryAutoplay(video);
+              }, { once: true });
             }
             slideIn();
           }).catch(() => {
@@ -1661,6 +1688,35 @@ class ContentManagerApp {
   stopViewerVideo() {
     const video = document.getElementById('viewerVideo');
     if (video) { video.pause(); video.src = ''; }
+    document.getElementById('viewerPlayBtn').style.display = 'none';
+  }
+
+  // Try to autoplay video - iOS compatible
+  _tryAutoplay(video) {
+    const playBtn = document.getElementById('viewerPlayBtn');
+    playBtn.style.display = 'none';
+
+    // First try: play muted (iOS always allows muted autoplay)
+    video.muted = true;
+    const playPromise = video.play();
+    if (playPromise !== undefined) {
+      playPromise.then(() => {
+        // Muted autoplay worked - try unmuting
+        video.muted = false;
+        // If unmuting causes a pause on iOS, re-mute
+        const checkPlaying = () => {
+          if (video.paused && video.src) {
+            // Unmute failed, stay muted and show feedback
+            video.muted = true;
+            video.play().catch(() => {});
+          }
+        };
+        setTimeout(checkPlaying, 100);
+      }).catch(() => {
+        // Even muted autoplay failed - show play button
+        playBtn.style.display = '';
+      });
+    }
   }
 
   async downloadVideo() {

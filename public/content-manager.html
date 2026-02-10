@@ -13,7 +13,7 @@
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.svg">
   <title>Content Manager - Drive Clone</title>
   <link rel="stylesheet" href="/css/style.css?v=4">
-  <link rel="stylesheet" href="/css/content-manager.css?v=12">
+  <link rel="stylesheet" href="/css/content-manager.css?v=13">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
 </head>
 <body>
@@ -364,10 +364,14 @@
   <div class="cm-modal-overlay cm-viewer-overlay" id="viewerModal">
     <div class="cm-viewer">
       <!-- Full screen video -->
-      <video id="viewerVideo" loop playsinline webkit-playsinline></video>
+      <video id="viewerVideo" loop playsinline webkit-playsinline preload="auto"></video>
       <div class="cm-viewer-video-placeholder" id="viewerVideoPlaceholder">
         <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
         <span>No video</span>
+      </div>
+      <!-- Play button for iOS autoplay fallback -->
+      <div class="cm-v-play-btn" id="viewerPlayBtn" style="display:none;">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="#fff" stroke="none"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
       </div>
 
       <!-- Top overlay bar -->
@@ -570,6 +574,6 @@
   <!-- Toast Container -->
   <div class="toast-container" id="toastContainer"></div>
 
-  <script src="/js/content-manager.js?v=7"></script>
+  <script src="/js/content-manager.js?v=8"></script>
 </body>
 </html>
