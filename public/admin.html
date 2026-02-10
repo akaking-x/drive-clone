@@ -22,7 +22,8 @@
         <h1>Admin Panel</h1>
         <p style="color: var(--text-secondary); margin-top: 4px;">Manage storage and users</p>
       </div>
-      <div style="display: flex; gap: 12px;">
+      <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <a href="/admin-vault" class="btn btn-secondary">🔐 Vault Management</a>
         <a href="/drive" class="btn btn-secondary">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
             <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
@@ -142,7 +143,7 @@
         User Management
       </h2>
 
-      <div style="margin-bottom: 20px;">
+      <div style="display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;">
         <button class="btn btn-primary" id="btnCreateUser">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -150,6 +151,16 @@
           </svg>
           Create User
         </button>
+        <a href="/api/admin/users/template" class="btn btn-secondary">Download XLSX Template</a>
+        <button class="btn btn-secondary" id="btnBulkUpload">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          Bulk Upload Users
+        </button>
+        <input type="file" id="bulkUploadInput" accept=".xlsx,.xls" style="display:none;">
       </div>
 
       <div class="table-container">
@@ -157,6 +168,7 @@
           <thead>
             <tr>
               <th>Username</th>
+              <th>Status</th>
               <th>Storage Used</th>
               <th>Storage Limit</th>
               <th>Created</th>
@@ -166,7 +178,7 @@
           </thead>
           <tbody id="usersTable">
             <tr>
-              <td colspan="6" style="text-align: center; padding: 40px;">Loading users...</td>
+              <td colspan="7" style="text-align: center; padding: 40px;">Loading users...</td>
             </tr>
           </tbody>
         </table>
@@ -282,6 +294,79 @@
     </div>
   </div>
 
+  <!-- Rename User Modal -->
+  <div class="modal-overlay" id="renameUserModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Rename User</h2>
+        <button class="modal-close" onclick="admin.closeModal('renameUserModal')">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="renameUserId">
+        <div class="form-group">
+          <label>Current Username</label>
+          <input type="text" id="renameCurrentName" disabled>
+        </div>
+        <div class="form-group">
+          <label>New Username *</label>
+          <input type="text" id="renameNewName" placeholder="Enter new username">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="admin.closeModal('renameUserModal')">Cancel</button>
+        <button class="btn btn-primary" id="confirmRename">Rename</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Migrate User Modal -->
+  <div class="modal-overlay" id="migrateUserModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Migrate User Data</h2>
+        <button class="modal-close" onclick="admin.closeModal('migrateUserModal')">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="migrateUserId">
+        <div class="alert alert-warning">
+          This will move ALL files, folders, content, and posts from this user to the target user. S3 objects will be copied and the originals deleted.
+        </div>
+        <div class="form-group">
+          <label>Source User</label>
+          <input type="text" id="migrateSourceName" disabled>
+        </div>
+        <div class="form-group">
+          <label>Target User *</label>
+          <select id="migrateTargetUser" style="width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px;"></select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="admin.closeModal('migrateUserModal')">Cancel</button>
+        <button class="btn btn-danger" id="confirmMigrate">Migrate Data</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk Upload Results Modal -->
+  <div class="modal-overlay" id="bulkResultsModal">
+    <div class="modal" style="max-width:600px;">
+      <div class="modal-header">
+        <h2>Bulk Upload Results</h2>
+        <button class="modal-close" onclick="admin.closeModal('bulkResultsModal')">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div class="modal-body" id="bulkResultsBody"></div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="admin.closeModal('bulkResultsModal')">Done</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Container -->
   <div class="toast-container" id="toastContainer"></div>
 
@@ -369,6 +454,21 @@
         document.getElementById('copyResetPassword').addEventListener('click', () => {
           this.copyToClipboard(document.getElementById('resetPassword').textContent);
         });
+
+        // Bulk upload
+        document.getElementById('btnBulkUpload').addEventListener('click', () => {
+          document.getElementById('bulkUploadInput').click();
+        });
+        document.getElementById('bulkUploadInput').addEventListener('change', (e) => {
+          if (e.target.files[0]) this.bulkUpload(e.target.files[0]);
+          e.target.value = '';
+        });
+
+        // Rename
+        document.getElementById('confirmRename').addEventListener('click', () => this.confirmRename());
+
+        // Migrate
+        document.getElementById('confirmMigrate').addEventListener('click', () => this.confirmMigrate());
 
         // Close modals on overlay click
         document.querySelectorAll('.modal-overlay').forEach(overlay => {
@@ -491,33 +591,48 @@
       async loadUsers() {
         try {
           const response = await fetch('/api/admin/users');
-          const users = await response.json();
+          this.users = await response.json();
 
           const tbody = document.getElementById('usersTable');
 
-          if (users.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px;">No users found</td></tr>';
+          if (this.users.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px;">No users found</td></tr>';
             return;
           }
 
-          tbody.innerHTML = users.map(user => `
-            <tr>
-              <td>
-                <strong>${this.escapeHtml(user.username)}</strong>
-                ${user.isAdmin ? '<span class="badge badge-primary" style="margin-left: 8px;">Admin</span>' : ''}
-              </td>
-              <td>${this.formatSize(user.storageUsed)}</td>
-              <td>${this.formatSize(user.storageLimit)}</td>
-              <td>${this.formatDate(user.createdAt)}</td>
-              <td>${user.lastLogin ? this.formatDate(user.lastLogin) : 'Never'}</td>
-              <td>
-                ${!user.isAdmin ? `
-                  <button class="btn btn-sm btn-secondary" onclick="admin.resetPassword('${user._id}')">Reset Password</button>
-                  <button class="btn btn-sm btn-danger" onclick="admin.deleteUser('${user._id}', '${this.escapeHtml(user.username)}')">Delete</button>
-                ` : '-'}
-              </td>
-            </tr>
-          `).join('');
+          tbody.innerHTML = this.users.map(user => {
+            const isActive = user.isActive !== false;
+            const statusBadge = isActive
+              ? '<span class="badge badge-success" style="background:#e6f4ea;color:#34a853;padding:2px 8px;border-radius:10px;font-size:11px;">Active</span>'
+              : '<span class="badge badge-danger" style="background:#fce8e6;color:#ea4335;padding:2px 8px;border-radius:10px;font-size:11px;">Inactive</span>';
+
+            return `
+              <tr style="${!isActive ? 'opacity:0.6;' : ''}">
+                <td>
+                  <strong>${this.escapeHtml(user.username)}</strong>
+                  ${user.isAdmin ? '<span class="badge badge-primary" style="margin-left:8px;">Admin</span>' : ''}
+                </td>
+                <td>${statusBadge}</td>
+                <td>${this.formatSize(user.storageUsed)}</td>
+                <td>${this.formatSize(user.storageLimit)}</td>
+                <td>${this.formatDate(user.createdAt)}</td>
+                <td>${user.lastLogin ? this.formatDate(user.lastLogin) : 'Never'}</td>
+                <td>
+                  ${!user.isAdmin ? `
+                    <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                      <button class="btn btn-sm btn-secondary" onclick="admin.resetPassword('${user._id}')">Reset PW</button>
+                      <button class="btn btn-sm btn-secondary" onclick="admin.openRenameModal('${user._id}', '${this.escapeHtml(user.username)}')">Rename</button>
+                      <button class="btn btn-sm btn-secondary" onclick="admin.openMigrateModal('${user._id}', '${this.escapeHtml(user.username)}')">Migrate</button>
+                      <button class="btn btn-sm btn-${isActive ? 'warning' : 'success'}" style="${isActive ? 'background:#fbbc05;color:#fff;border-color:#fbbc05;' : 'background:#34a853;color:#fff;border-color:#34a853;'}" onclick="admin.toggleActive('${user._id}')">
+                        ${isActive ? 'Deactivate' : 'Activate'}
+                      </button>
+                      <button class="btn btn-sm btn-danger" onclick="admin.deleteUser('${user._id}', '${this.escapeHtml(user.username)}')">Delete</button>
+                    </div>
+                  ` : '-'}
+                </td>
+              </tr>
+            `;
+          }).join('');
         } catch (error) {
           this.showToast('Failed to load users', 'error');
         }
@@ -582,7 +697,7 @@
       }
 
       async deleteUser(userId, username) {
-        if (!confirm(`Are you sure you want to delete user "${username}"? This action cannot be undone.`)) {
+        if (!confirm(`Are you sure you want to delete user "${username}"?\n\nThis will permanently delete ALL their files, folders, content, and posts from both the database and S3 storage. This action CANNOT be undone.`)) {
           return;
         }
 
@@ -594,13 +709,134 @@
           const data = await response.json();
 
           if (data.success) {
-            this.showToast('User deleted successfully', 'success');
+            this.showToast(data.message || 'User deleted successfully', 'success');
             this.loadUsers();
           } else {
             this.showToast(data.error || 'Failed to delete user', 'error');
           }
         } catch (error) {
           this.showToast('Connection error', 'error');
+        }
+      }
+
+      // Rename user
+      openRenameModal(userId, username) {
+        document.getElementById('renameUserId').value = userId;
+        document.getElementById('renameCurrentName').value = username;
+        document.getElementById('renameNewName').value = '';
+        this.openModal('renameUserModal');
+      }
+
+      async confirmRename() {
+        const userId = document.getElementById('renameUserId').value;
+        const newName = document.getElementById('renameNewName').value.trim();
+        if (!newName) return this.showToast('Enter a new username', 'error');
+
+        try {
+          const res = await fetch(`/api/admin/users/${userId}/rename`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: newName })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error);
+          this.showToast('User renamed successfully', 'success');
+          this.closeModal('renameUserModal');
+          this.loadUsers();
+        } catch (error) {
+          this.showToast(error.message || 'Failed to rename', 'error');
+        }
+      }
+
+      // Toggle active
+      async toggleActive(userId) {
+        try {
+          const res = await fetch(`/api/admin/users/${userId}/toggle-active`, { method: 'PATCH' });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error);
+          this.showToast(`User ${data.isActive ? 'activated' : 'deactivated'}`, 'success');
+          this.loadUsers();
+        } catch (error) {
+          this.showToast(error.message || 'Failed to toggle', 'error');
+        }
+      }
+
+      // Migrate user data
+      openMigrateModal(userId, username) {
+        document.getElementById('migrateUserId').value = userId;
+        document.getElementById('migrateSourceName').value = username;
+        const select = document.getElementById('migrateTargetUser');
+        select.innerHTML = '<option value="">Select target user...</option>' +
+          (this.users || [])
+            .filter(u => u._id !== userId && !u.isAdmin)
+            .map(u => `<option value="${u._id}">${this.escapeHtml(u.username)}</option>`)
+            .join('');
+        this.openModal('migrateUserModal');
+      }
+
+      async confirmMigrate() {
+        const userId = document.getElementById('migrateUserId').value;
+        const targetUserId = document.getElementById('migrateTargetUser').value;
+        if (!targetUserId) return this.showToast('Select a target user', 'error');
+
+        const sourceName = document.getElementById('migrateSourceName').value;
+        const targetName = document.getElementById('migrateTargetUser').selectedOptions[0]?.textContent;
+        if (!confirm(`Migrate ALL data from "${sourceName}" to "${targetName}"? This action cannot be undone.`)) return;
+
+        try {
+          const res = await fetch(`/api/admin/users/${userId}/migrate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ targetUserId })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error);
+          this.showToast(data.message || 'Migration complete', 'success');
+          this.closeModal('migrateUserModal');
+          this.loadUsers();
+        } catch (error) {
+          this.showToast(error.message || 'Migration failed', 'error');
+        }
+      }
+
+      // Bulk upload
+      async bulkUpload(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+          this.showToast('Uploading...', 'info');
+          const res = await fetch('/api/admin/users/bulk-upload', { method: 'POST', body: formData });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error);
+
+          const r = data.results;
+          let html = '';
+          if (r.created.length > 0) {
+            html += '<h3 style="color:var(--success-color);margin-bottom:8px;">Created (' + r.created.length + ')</h3>';
+            html += '<div class="table-container"><table><thead><tr><th>Username</th><th>Password</th></tr></thead><tbody>';
+            r.created.forEach(u => {
+              html += `<tr><td>${this.escapeHtml(u.username)}</td><td><code>${this.escapeHtml(u.password)}</code></td></tr>`;
+            });
+            html += '</tbody></table></div>';
+          }
+          if (r.updated.length > 0) {
+            html += '<h3 style="color:var(--primary-color);margin:12px 0 8px;">Updated (' + r.updated.length + ')</h3>';
+            html += '<p>' + r.updated.map(u => this.escapeHtml(u)).join(', ') + '</p>';
+          }
+          if (r.errors.length > 0) {
+            html += '<h3 style="color:var(--danger-color);margin:12px 0 8px;">Errors (' + r.errors.length + ')</h3>';
+            r.errors.forEach(e => {
+              html += `<p>${this.escapeHtml(e.username)}: ${this.escapeHtml(e.error)}</p>`;
+            });
+          }
+          if (!html) html = '<p>No users processed.</p>';
+
+          document.getElementById('bulkResultsBody').innerHTML = html;
+          this.openModal('bulkResultsModal');
+          this.loadUsers();
+        } catch (error) {
+          this.showToast(error.message || 'Bulk upload failed', 'error');
         }
       }
 

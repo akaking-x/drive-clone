@@ -1,6 +1,21 @@
+const User = require('../models/User');
+
 // Check if user is authenticated
-const isAuthenticated = (req, res, next) => {
+const isAuthenticated = async (req, res, next) => {
   if (req.session && req.session.userId) {
+    // Check if user is still active
+    try {
+      const user = await User.findById(req.session.userId, 'isActive');
+      if (!user || user.isActive === false) {
+        req.session.destroy(() => {});
+        if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
+          return res.status(401).json({ error: 'Account deactivated' });
+        }
+        return res.redirect('/login');
+      }
+    } catch (err) {
+      // If DB check fails, allow through (don't break existing sessions)
+    }
     return next();
   }
   if (req.xhr || req.headers.accept?.indexOf('json') > -1) {

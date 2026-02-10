@@ -31,6 +31,10 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 5368709120 // 5GB default
   },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
   createdAt: {
     type: Date,
     default: Date.now

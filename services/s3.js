@@ -1,4 +1,4 @@
-const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, HeadObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, HeadObjectCommand, ListObjectsV2Command, CopyObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const { Upload } = require('@aws-sdk/lib-storage');
 const S3Config = require('../models/S3Config');
@@ -155,6 +155,55 @@ async function fileExists(key) {
   }
 }
 
+// List all objects under a prefix
+async function listObjects(prefix) {
+  if (!isS3Configured()) {
+    throw new Error('S3 is not configured');
+  }
+
+  const objects = [];
+  let continuationToken;
+
+  do {
+    const command = new ListObjectsV2Command({
+      Bucket: currentBucket,
+      Prefix: prefix,
+      ContinuationToken: continuationToken
+    });
+    const response = await s3Client.send(command);
+    if (response.Contents) {
+      objects.push(...response.Contents);
+    }
+    continuationToken = response.NextContinuationToken;
+  } while (continuationToken);
+
+  return objects;
+}
+
+// Copy an object to a new key
+async function copyObject(sourceKey, destKey) {
+  if (!isS3Configured()) {
+    throw new Error('S3 is not configured');
+  }
+
+  const command = new CopyObjectCommand({
+    Bucket: currentBucket,
+    CopySource: `${currentBucket}/${sourceKey}`,
+    Key: destKey
+  });
+
+  return await s3Client.send(command);
+}
+
+// Delete all objects under a prefix
+async function deletePrefix(prefix) {
+  const objects = await listObjects(prefix);
+  for (const obj of objects) {
+    await deleteFile(obj.Key);
+  }
+  return objects.length;
+}
+
 module.exports = {
   initS3Client,
   getS3Client,
@@ -165,5 +214,8 @@ module.exports = {
   getDownloadUrl,
   getFileStream,
   deleteFile,
-  fileExists
+  fileExists,
+  listObjects,
+  copyObject,
+  deletePrefix
 };

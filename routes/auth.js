@@ -27,6 +27,11 @@ router.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    // Check if account is active
+    if (user.isActive === false) {
+      return res.status(403).json({ error: 'Account has been deactivated. Contact admin.' });
+    }
+
     // Update last login
     user.lastLogin = new Date();
     await user.save();

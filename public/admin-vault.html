@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#4285f4">
+  <link rel="manifest" href="/manifest.json">
+  <title>Vault Management - Drive Clone</title>
+  <link rel="stylesheet" href="/css/style.css?v=4">
+  <link rel="stylesheet" href="/css/vault.css?v=1">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔐</text></svg>">
+  <style>
+    .av-container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    .av-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .av-header h1 { font-size: 24px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+    .av-header-actions { display: flex; gap: 12px; }
+    .av-tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 2px solid var(--border-color); }
+    .av-tab { padding: 10px 20px; font-size: 14px; font-weight: 500; border: none; background: none; cursor: pointer; color: var(--text-secondary); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s; }
+    .av-tab.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
+    .av-tab:hover { color: var(--text-color); }
+    .av-panel { display: none; }
+    .av-panel.active { display: block; }
+    .av-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .av-card { background: var(--white); border: 1px solid var(--border-color); border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+    .av-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .av-card-title { font-weight: 600; font-size: 15px; }
+    .av-card-actions { display: flex; gap: 6px; }
+    .av-card-meta { font-size: 13px; color: var(--text-secondary); }
+    .av-members { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .av-member-chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: #e8f0fe; border-radius: 16px; font-size: 12px; color: var(--primary-color); }
+    .av-member-chip .remove { cursor: pointer; font-size: 16px; margin-left: 2px; color: var(--text-secondary); }
+    .av-member-chip .remove:hover { color: var(--danger-color); }
+    .av-sharing { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+    .av-share-chip { padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; }
+    .av-share-chip.user { background: #e8f0fe; color: var(--primary-color); }
+    .av-share-chip.group { background: #fef7e0; color: #e37400; }
+    .av-error-reports { margin-top: 8px; }
+    .av-error-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: #fce8e6; border-radius: 6px; margin-bottom: 4px; font-size: 13px; }
+    .av-error-item.resolved { background: #e6f4ea; }
+    .av-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .av-form-row.single { grid-template-columns: 1fr; }
+    .av-select-multi { min-height: 80px; }
+    .av-extra-fields { margin-top: 8px; }
+    .av-extra-field-row { display: flex; gap: 8px; margin-bottom: 6px; align-items: center; }
+    .av-extra-field-row input { flex: 1; }
+    .av-guide-editor { width: 100%; min-height: 120px; font-family: monospace; font-size: 13px; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; resize: vertical; }
+    @media (max-width: 768px) {
+      .av-form-row { grid-template-columns: 1fr; }
+      .av-container { padding: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="av-container">
+    <div class="av-header">
+      <h1>🔐 Vault Management</h1>
+      <div class="av-header-actions">
+        <a href="/vault" class="btn btn-secondary">User View</a>
+        <a href="/admin" class="btn btn-secondary">Admin Panel</a>
+        <a href="/drive" class="btn btn-secondary">My Drive</a>
+      </div>
+    </div>
+
+    <div class="av-tabs">
+      <button class="av-tab active" data-tab="services">Services</button>
+      <button class="av-tab" data-tab="groups">Groups</button>
+      <button class="av-tab" data-tab="credentials">Credentials</button>
+    </div>
+
+    <!-- Services Tab -->
+    <div class="av-panel active" id="panel-services">
+      <div class="av-toolbar">
+        <span id="servicesCount" style="color:var(--text-secondary); font-size:14px;"></span>
+        <button class="btn btn-primary" id="btnAddService">+ Add Service</button>
+      </div>
+      <div id="servicesList"></div>
+    </div>
+
+    <!-- Groups Tab -->
+    <div class="av-panel" id="panel-groups">
+      <div class="av-toolbar">
+        <span id="groupsCount" style="color:var(--text-secondary); font-size:14px;"></span>
+        <button class="btn btn-primary" id="btnAddGroup">+ Add Group</button>
+      </div>
+      <div id="groupsList"></div>
+    </div>
+
+    <!-- Credentials Tab -->
+    <div class="av-panel" id="panel-credentials">
+      <div class="av-toolbar">
+        <span id="credentialsCount" style="color:var(--text-secondary); font-size:14px;"></span>
+        <button class="btn btn-primary" id="btnAddCredential">+ Add Credential</button>
+      </div>
+      <div id="adminCredentialsList"></div>
+    </div>
+  </div>
+
+  <!-- Service Modal -->
+  <div class="modal-overlay" id="serviceModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="serviceModalTitle">Add Service</h2>
+        <button class="modal-close" onclick="avApp.closeModal('serviceModal')">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="serviceEditId">
+        <div class="form-group">
+          <label>Service Name *</label>
+          <input type="text" id="serviceName" placeholder="e.g., Google, Suno, ElevenLabs">
+        </div>
+        <div class="form-group">
+          <label>Icon (emoji)</label>
+          <input type="text" id="serviceIcon" placeholder="e.g., 🎵" maxlength="4">
+        </div>
+        <div class="form-group">
+          <label>Guide (markdown-like text)</label>
+          <textarea class="av-guide-editor" id="serviceGuide" placeholder="**Step 1:** Go to settings..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="avApp.closeModal('serviceModal')">Cancel</button>
+        <button class="btn btn-primary" id="saveService">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Group Modal -->
+  <div class="modal-overlay" id="groupModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="groupModalTitle">Add Group</h2>
+        <button class="modal-close" onclick="avApp.closeModal('groupModal')">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="groupEditId">
+        <div class="form-group">
+          <label>Group Name *</label>
+          <input type="text" id="groupName" placeholder="e.g., Content Team">
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <input type="text" id="groupDescription" placeholder="Optional description">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="avApp.closeModal('groupModal')">Cancel</button>
+        <button class="btn btn-primary" id="saveGroup">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Member Modal -->
+  <div class="modal-overlay" id="addMemberModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Add Member</h2>
+        <button class="modal-close" onclick="avApp.closeModal('addMemberModal')">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="addMemberGroupId">
+        <div class="form-group">
+          <label>Select User</label>
+          <select id="addMemberSelect" class="form-control" style="width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px;">
+            <option value="">Select a user...</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="avApp.closeModal('addMemberModal')">Cancel</button>
+        <button class="btn btn-primary" id="confirmAddMember">Add</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Credential Modal -->
+  <div class="modal-overlay" id="credentialModal">
+    <div class="modal" style="max-width:600px;">
+      <div class="modal-header">
+        <h2 id="credentialModalTitle">Add Credential</h2>
+        <button class="modal-close" onclick="avApp.closeModal('credentialModal')">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="credentialEditId">
+        <div class="av-form-row">
+          <div class="form-group">
+            <label>Service *</label>
+            <select id="credService" style="width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px;"></select>
+          </div>
+          <div class="form-group">
+            <label>Label *</label>
+            <input type="text" id="credLabel" placeholder="e.g., Main Account">
+          </div>
+        </div>
+        <div class="av-form-row">
+          <div class="form-group">
+            <label>Username / Email</label>
+            <input type="text" id="credUsername" placeholder="username or email">
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input type="text" id="credPassword" placeholder="password">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Extra Fields</label>
+          <div id="extraFieldsContainer"></div>
+          <button type="button" class="btn btn-secondary btn-sm" id="addExtraField" style="margin-top:6px;">+ Add Field</button>
+        </div>
+        <div class="av-form-row">
+          <div class="form-group">
+            <label>Share with Users</label>
+            <select id="credShareUsers" multiple class="av-select-multi" style="width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px;"></select>
+          </div>
+          <div class="form-group">
+            <label>Share with Groups</label>
+            <select id="credShareGroups" multiple class="av-select-multi" style="width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px;"></select>
+          </div>
+        </div>
+        <div class="av-form-row">
+          <div class="form-group">
+            <label>Status</label>
+            <select id="credStatus" style="width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px;">
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="error">Error</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Notes</label>
+          <textarea id="credNotes" rows="2" style="width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px; font-family:inherit; resize:vertical;"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="avApp.closeModal('credentialModal')">Cancel</button>
+        <button class="btn btn-primary" id="saveCredential">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="/js/admin-vault.js?v=1"></script>
+</body>
+</html>

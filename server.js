@@ -14,6 +14,8 @@ const videoPostRoutes = require('./routes/video-posts');
 const followRoutes = require('./routes/follows');
 const notificationRoutes = require('./routes/notifications');
 const adminContentRoutes = require('./routes/admin-content');
+const vaultRoutes = require('./routes/vault');
+const vaultAdminRoutes = require('./routes/vault-admin');
 const { initS3Client } = require('./services/s3');
 const User = require('./models/User');
 const { v4: uuidv4 } = require('uuid');
@@ -76,6 +78,8 @@ app.use(videoPostRoutes);
 app.use(followRoutes);
 app.use(notificationRoutes);
 app.use(adminContentRoutes);
+app.use(vaultRoutes);
+app.use(vaultAdminRoutes);
 
 // Root redirect
 app.get('/', (req, res) => {
