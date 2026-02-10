@@ -340,6 +340,29 @@ body {
 .user-name {
   font-size: 14px;
   font-weight: 500;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+/* Change password error */
+.change-pw-error {
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: #fce8e6;
+  color: #c5221f;
+  border-radius: 8px;
+  font-size: 13px;
+  border: 1px solid #f5c6cb;
 }
 
 /* Main Content */

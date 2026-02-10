@@ -126,6 +126,27 @@ class DriveApp {
       this.loadStorageInfo();
     });
 
+    // Change password
+    document.getElementById('btnChangePassword').addEventListener('click', () => {
+      document.getElementById('currentPassword').value = '';
+      document.getElementById('newPassword').value = '';
+      document.getElementById('confirmPassword').value = '';
+      document.getElementById('changePwError').style.display = 'none';
+      this.openModal('changePasswordModal');
+    });
+    document.getElementById('closeChangePasswordModal').addEventListener('click', () => {
+      this.closeModal('changePasswordModal');
+    });
+    document.getElementById('cancelChangePassword').addEventListener('click', () => {
+      this.closeModal('changePasswordModal');
+    });
+    document.getElementById('confirmChangePassword').addEventListener('click', () => {
+      this.changePassword();
+    });
+    document.getElementById('confirmPassword').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') this.changePassword();
+    });
+
     // Logout
     document.getElementById('btnLogout').addEventListener('click', async () => {
       await fetch('/api/auth/logout', { method: 'POST' });
@@ -1151,6 +1172,53 @@ class DriveApp {
       }
     } catch (error) {
       this.showToast('Connection error', 'error');
+    }
+  }
+
+  async changePassword() {
+    const currentPassword = document.getElementById('currentPassword').value;
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    const errorEl = document.getElementById('changePwError');
+
+    errorEl.style.display = 'none';
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      errorEl.textContent = 'All fields are required';
+      errorEl.style.display = '';
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      errorEl.textContent = 'New password must be at least 6 characters';
+      errorEl.style.display = '';
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      errorEl.textContent = 'New passwords do not match';
+      errorEl.style.display = '';
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword, newPassword, confirmPassword })
+      });
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        this.closeModal('changePasswordModal');
+        this.showToast('Password changed successfully', 'success');
+      } else {
+        errorEl.textContent = data.error || 'Failed to change password';
+        errorEl.style.display = '';
+      }
+    } catch (error) {
+      errorEl.textContent = 'Connection error';
+      errorEl.style.display = '';
     }
   }
 
