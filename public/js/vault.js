@@ -301,7 +301,7 @@ class VaultApp {
       const response = await fetch(`/api/vault/credentials/${credId}/password`);
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
-      await navigator.clipboard.writeText(data.password);
+      this.clipboardWrite(data.password);
       this.showToast('Password copied', 'success');
     } catch (error) {
       this.showToast(error.message || 'Failed to copy password', 'error');
@@ -309,11 +309,23 @@ class VaultApp {
   }
 
   copyText(text) {
-    navigator.clipboard.writeText(text).then(() => {
-      this.showToast('Copied to clipboard', 'success');
-    }).catch(() => {
-      this.showToast('Failed to copy', 'error');
-    });
+    this.clipboardWrite(text);
+    this.showToast('Copied to clipboard', 'success');
+  }
+
+  clipboardWrite(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text);
+      return;
+    }
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
   }
 
   openReport(credId) {
