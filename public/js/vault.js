@@ -21,6 +21,8 @@ class VaultApp {
         window.location.href = '/login';
         return;
       }
+      this.user = data;
+      document.getElementById('userName').textContent = data.username || 'User';
       if (data.isAdmin) {
         document.getElementById('navAdmin').style.display = '';
         document.getElementById('navAdminVault').style.display = '';
@@ -31,12 +33,29 @@ class VaultApp {
   }
 
   bindEvents() {
+    // Sidebar toggle (mobile)
+    document.getElementById('menuToggle').addEventListener('click', () => {
+      document.getElementById('sidebar').classList.toggle('open');
+      document.getElementById('sidebarOverlay').classList.toggle('active');
+    });
+    document.getElementById('sidebarOverlay').addEventListener('click', () => {
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('sidebarOverlay').classList.remove('active');
+    });
+
     // Sidebar filter clicks
     document.querySelectorAll('.vault-nav-item[data-filter]').forEach(item => {
       item.addEventListener('click', (e) => {
         e.preventDefault();
         this.setFilter(item.dataset.filter);
+        this.closeSidebar();
       });
+    });
+
+    // Logout
+    document.getElementById('btnLogout').addEventListener('click', async () => {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/login';
     });
 
     // Report modal
@@ -49,6 +68,11 @@ class VaultApp {
         if (e.target === overlay) overlay.classList.remove('active');
       });
     });
+  }
+
+  closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('active');
   }
 
   async loadData() {
@@ -84,6 +108,7 @@ class VaultApp {
       item.addEventListener('click', (e) => {
         e.preventDefault();
         this.setFilter(item.dataset.filter);
+        this.closeSidebar();
       });
     });
   }

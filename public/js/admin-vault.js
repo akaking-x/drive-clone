@@ -18,10 +18,27 @@ class AdminVaultApp {
       const res = await fetch('/api/auth/me');
       const data = await res.json();
       if (!res.ok || !data.isAdmin) window.location.href = '/login';
+      document.getElementById('userName').textContent = data.username || 'Admin';
     } catch { window.location.href = '/login'; }
   }
 
   bindEvents() {
+    // Sidebar toggle (mobile)
+    document.getElementById('menuToggle').addEventListener('click', () => {
+      document.getElementById('sidebar').classList.toggle('open');
+      document.getElementById('sidebarOverlay').classList.toggle('active');
+    });
+    document.getElementById('sidebarOverlay').addEventListener('click', () => {
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('sidebarOverlay').classList.remove('active');
+    });
+
+    // Logout
+    document.getElementById('btnLogout').addEventListener('click', async () => {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/login';
+    });
+
     // Tabs
     document.querySelectorAll('.av-tab').forEach(tab => {
       tab.addEventListener('click', () => {

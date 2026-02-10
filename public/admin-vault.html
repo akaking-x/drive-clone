@@ -4,39 +4,41 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Drive Clone">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#4285f4">
+  <meta name="format-detection" content="telephone=no">
   <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.svg">
   <title>Vault Management - Drive Clone</title>
   <link rel="stylesheet" href="/css/style.css?v=4">
-  <link rel="stylesheet" href="/css/vault.css?v=1">
+  <link rel="stylesheet" href="/css/vault.css?v=2">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔐</text></svg>">
   <style>
-    .av-container { max-width: 1100px; margin: 0 auto; padding: 24px; }
-    .av-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-    .av-header h1 { font-size: 24px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
-    .av-header-actions { display: flex; gap: 12px; }
-    .av-tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 2px solid var(--border-color); }
-    .av-tab { padding: 10px 20px; font-size: 14px; font-weight: 500; border: none; background: none; cursor: pointer; color: var(--text-secondary); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s; }
+    /* Admin Vault specific styles */
+    .av-tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border-color); padding: 0 4px; background: var(--white); flex-shrink: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .av-tab { padding: 12px 20px; font-size: 14px; font-weight: 500; border: none; background: none; cursor: pointer; color: var(--text-secondary); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s; white-space: nowrap; -webkit-tap-highlight-color: transparent; }
     .av-tab.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
     .av-tab:hover { color: var(--text-color); }
     .av-panel { display: none; }
     .av-panel.active { display: block; }
     .av-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     .av-card { background: var(--white); border: 1px solid var(--border-color); border-radius: 10px; padding: 16px; margin-bottom: 12px; }
-    .av-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-    .av-card-title { font-weight: 600; font-size: 15px; }
-    .av-card-actions { display: flex; gap: 6px; }
+    .av-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; gap: 8px; }
+    .av-card-title { font-weight: 600; font-size: 15px; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    .av-card-actions { display: flex; gap: 6px; flex-shrink: 0; flex-wrap: wrap; }
     .av-card-meta { font-size: 13px; color: var(--text-secondary); }
     .av-members { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
     .av-member-chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: #e8f0fe; border-radius: 16px; font-size: 12px; color: var(--primary-color); }
-    .av-member-chip .remove { cursor: pointer; font-size: 16px; margin-left: 2px; color: var(--text-secondary); }
+    .av-member-chip .remove { cursor: pointer; font-size: 16px; margin-left: 2px; color: var(--text-secondary); min-width: 20px; min-height: 20px; display: inline-flex; align-items: center; justify-content: center; }
     .av-member-chip .remove:hover { color: var(--danger-color); }
     .av-sharing { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
     .av-share-chip { padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; }
     .av-share-chip.user { background: #e8f0fe; color: var(--primary-color); }
     .av-share-chip.group { background: #fef7e0; color: #e37400; }
     .av-error-reports { margin-top: 8px; }
-    .av-error-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: #fce8e6; border-radius: 6px; margin-bottom: 4px; font-size: 13px; }
+    .av-error-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: #fce8e6; border-radius: 6px; margin-bottom: 4px; font-size: 13px; gap: 8px; }
     .av-error-item.resolved { background: #e6f4ea; }
     .av-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
     .av-form-row.single { grid-template-columns: 1fr; }
@@ -44,56 +46,124 @@
     .av-extra-fields { margin-top: 8px; }
     .av-extra-field-row { display: flex; gap: 8px; margin-bottom: 6px; align-items: center; }
     .av-extra-field-row input { flex: 1; }
-    .av-guide-editor { width: 100%; min-height: 120px; font-family: monospace; font-size: 13px; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; resize: vertical; }
+    .av-guide-editor { width: 100%; min-height: 120px; font-family: monospace; font-size: 16px; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; resize: vertical; }
+
     @media (max-width: 768px) {
       .av-form-row { grid-template-columns: 1fr; }
-      .av-container { padding: 12px; }
+      .av-card { padding: 12px; }
+      .av-card-header { flex-direction: column; }
+      .av-card-actions { width: 100%; }
+      .av-card-actions .btn { flex: 1; text-align: center; }
+      .av-tab { padding: 10px 14px; font-size: 13px; }
+      .av-error-item { flex-direction: column; align-items: flex-start; gap: 6px; }
+      .av-error-item .btn { align-self: flex-end; }
+    }
+
+    @media (max-width: 480px) {
+      .av-tab { padding: 10px 12px; font-size: 12px; }
+    }
+
+    /* Touch targets */
+    @media (pointer: coarse) {
+      .av-tab { min-height: 44px; }
+      .av-member-chip .remove { min-width: 28px; min-height: 28px; }
     }
   </style>
 </head>
 <body>
-  <div class="av-container">
-    <div class="av-header">
-      <h1>🔐 Vault Management</h1>
-      <div class="av-header-actions">
-        <a href="/vault" class="btn btn-secondary">User View</a>
-        <a href="/admin" class="btn btn-secondary">Admin Panel</a>
-        <a href="/drive" class="btn btn-secondary">My Drive</a>
-      </div>
-    </div>
+  <div class="vault-container">
+    <!-- Sidebar Overlay (mobile) -->
+    <div class="vault-sidebar-overlay" id="sidebarOverlay"></div>
 
-    <div class="av-tabs">
-      <button class="av-tab active" data-tab="services">Services</button>
-      <button class="av-tab" data-tab="groups">Groups</button>
-      <button class="av-tab" data-tab="credentials">Credentials</button>
-    </div>
-
-    <!-- Services Tab -->
-    <div class="av-panel active" id="panel-services">
-      <div class="av-toolbar">
-        <span id="servicesCount" style="color:var(--text-secondary); font-size:14px;"></span>
-        <button class="btn btn-primary" id="btnAddService">+ Add Service</button>
+    <!-- Sidebar -->
+    <aside class="vault-sidebar" id="sidebar">
+      <div class="vault-sidebar-header">
+        <h1>🔐 Vault Admin</h1>
       </div>
-      <div id="servicesList"></div>
-    </div>
-
-    <!-- Groups Tab -->
-    <div class="av-panel" id="panel-groups">
-      <div class="av-toolbar">
-        <span id="groupsCount" style="color:var(--text-secondary); font-size:14px;"></span>
-        <button class="btn btn-primary" id="btnAddGroup">+ Add Group</button>
+      <nav class="vault-sidebar-nav">
+        <a href="/vault" class="vault-nav-item">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+          User View
+        </a>
+        <div class="vault-nav-divider"></div>
+        <a href="/drive" class="vault-nav-item">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
+          My Drive
+        </a>
+        <a href="/content-manager" class="vault-nav-item">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
+          Content Manager
+        </a>
+        <a href="/admin" class="vault-nav-item">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+          Admin Panel
+        </a>
+      </nav>
+      <div class="vault-sidebar-footer">
+        <div class="vault-user-row">
+          <span class="vault-user-name" id="userName">Admin</span>
+          <button class="vault-btn-icon" id="btnLogout" title="Logout">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </button>
+        </div>
       </div>
-      <div id="groupsList"></div>
-    </div>
+    </aside>
 
-    <!-- Credentials Tab -->
-    <div class="av-panel" id="panel-credentials">
-      <div class="av-toolbar">
-        <span id="credentialsCount" style="color:var(--text-secondary); font-size:14px;"></span>
-        <button class="btn btn-primary" id="btnAddCredential">+ Add Credential</button>
+    <!-- Main content -->
+    <main class="vault-main">
+      <!-- Header with menu toggle -->
+      <header class="vault-header">
+        <button class="vault-menu-toggle" id="menuToggle">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <span class="vault-header-title">Vault Management</span>
+      </header>
+
+      <!-- Tabs -->
+      <div class="av-tabs">
+        <button class="av-tab active" data-tab="services">Services</button>
+        <button class="av-tab" data-tab="groups">Groups</button>
+        <button class="av-tab" data-tab="credentials">Credentials</button>
       </div>
-      <div id="adminCredentialsList"></div>
-    </div>
+
+      <!-- Scrollable content area -->
+      <div class="vault-content-area">
+        <!-- Services Tab -->
+        <div class="av-panel active" id="panel-services">
+          <div class="av-toolbar">
+            <span id="servicesCount" style="color:var(--text-secondary); font-size:14px;"></span>
+            <button class="btn btn-primary" id="btnAddService">+ Add Service</button>
+          </div>
+          <div id="servicesList"></div>
+        </div>
+
+        <!-- Groups Tab -->
+        <div class="av-panel" id="panel-groups">
+          <div class="av-toolbar">
+            <span id="groupsCount" style="color:var(--text-secondary); font-size:14px;"></span>
+            <button class="btn btn-primary" id="btnAddGroup">+ Add Group</button>
+          </div>
+          <div id="groupsList"></div>
+        </div>
+
+        <!-- Credentials Tab -->
+        <div class="av-panel" id="panel-credentials">
+          <div class="av-toolbar">
+            <span id="credentialsCount" style="color:var(--text-secondary); font-size:14px;"></span>
+            <button class="btn btn-primary" id="btnAddCredential">+ Add Credential</button>
+          </div>
+          <div id="adminCredentialsList"></div>
+        </div>
+      </div>
+    </main>
   </div>
 
   <!-- Service Modal -->
@@ -167,7 +237,7 @@
         <input type="hidden" id="addMemberGroupId">
         <div class="form-group">
           <label>Select User</label>
-          <select id="addMemberSelect" class="form-control" style="width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px;">
+          <select id="addMemberSelect" class="form-control" style="width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px; font-size:16px;">
             <option value="">Select a user...</option>
           </select>
         </div>
@@ -193,7 +263,7 @@
         <div class="av-form-row">
           <div class="form-group">
             <label>Service *</label>
-            <select id="credService" style="width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px;"></select>
+            <select id="credService" style="width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px; font-size:16px;"></select>
           </div>
           <div class="form-group">
             <label>Label *</label>
@@ -218,17 +288,17 @@
         <div class="av-form-row">
           <div class="form-group">
             <label>Share with Users</label>
-            <select id="credShareUsers" multiple class="av-select-multi" style="width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px;"></select>
+            <select id="credShareUsers" multiple class="av-select-multi" style="width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px; font-size:16px;"></select>
           </div>
           <div class="form-group">
             <label>Share with Groups</label>
-            <select id="credShareGroups" multiple class="av-select-multi" style="width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px;"></select>
+            <select id="credShareGroups" multiple class="av-select-multi" style="width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px; font-size:16px;"></select>
           </div>
         </div>
-        <div class="av-form-row">
+        <div class="av-form-row single">
           <div class="form-group">
             <label>Status</label>
-            <select id="credStatus" style="width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px;">
+            <select id="credStatus" style="width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px; font-size:16px;">
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
               <option value="error">Error</option>
@@ -237,7 +307,7 @@
         </div>
         <div class="form-group">
           <label>Notes</label>
-          <textarea id="credNotes" rows="2" style="width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px; font-family:inherit; resize:vertical;"></textarea>
+          <textarea id="credNotes" rows="2" style="width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px; font-family:inherit; font-size:16px; resize:vertical;"></textarea>
         </div>
       </div>
       <div class="modal-footer">
@@ -250,6 +320,6 @@
   <!-- Toast Container -->
   <div class="toast-container" id="toastContainer"></div>
 
-  <script src="/js/admin-vault.js?v=1"></script>
+  <script src="/js/admin-vault.js?v=2"></script>
 </body>
 </html>
