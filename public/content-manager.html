@@ -13,7 +13,7 @@
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.svg">
   <title>Content Manager - Drive Clone</title>
   <link rel="stylesheet" href="/css/style.css?v=4">
-  <link rel="stylesheet" href="/css/content-manager.css?v=13">
+  <link rel="stylesheet" href="/css/content-manager.css?v=15">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
 </head>
 <body>
@@ -221,14 +221,17 @@
           <label>Category</label>
           <input type="text" id="inputCategory" placeholder="e.g. Entertainment, Education" list="categoryList">
           <datalist id="categoryList"></datalist>
+          <div class="cm-chip-container" id="categoryChips"></div>
         </div>
         <div class="cm-form-group">
           <label>Platform Tags</label>
           <input type="text" id="inputTags" placeholder="Comma separated: TikTok, YouTube Shorts">
+          <div class="cm-chip-container" id="platformTagChips"></div>
         </div>
         <div class="cm-form-group">
           <label>Reference Links</label>
           <textarea id="inputRefLinks" rows="2" placeholder="One link per line"></textarea>
+          <div class="cm-chip-container" id="refLinkChips"></div>
         </div>
         <div class="cm-form-group">
           <label>Description</label>
@@ -373,6 +376,10 @@
       <div class="cm-v-play-btn" id="viewerPlayBtn" style="display:none;">
         <svg width="64" height="64" viewBox="0 0 24 24" fill="#fff" stroke="none"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
       </div>
+      <!-- Unmute button (shown when video autoplays muted) -->
+      <button class="cm-v-unmute-btn" id="viewerUnmuteBtn" style="display:none;" title="Tap to unmute">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+      </button>
 
       <!-- Top overlay bar -->
       <div class="cm-v-top">
@@ -574,6 +581,6 @@
   <!-- Toast Container -->
   <div class="toast-container" id="toastContainer"></div>
 
-  <script src="/js/content-manager.js?v=8"></script>
+  <script src="/js/content-manager.js?v=9"></script>
 </body>
 </html>

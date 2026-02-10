@@ -180,6 +180,44 @@ router.get('/api/content-categories', isAuthenticated, async (req, res) => {
   }
 });
 
+// Get platform tags for current user
+router.get('/api/content-platform-tags', isAuthenticated, async (req, res) => {
+  try {
+    const userId = req.session.userId;
+    const contents = await Content.find({
+      $or: [
+        { owner: userId },
+        { 'collaborators.user_id': userId, 'collaborators.status': 'accepted' }
+      ],
+      platform_tags: { $exists: true, $ne: [] }
+    }).select('platform_tags');
+    const tagSet = new Set();
+    contents.forEach(c => (c.platform_tags || []).forEach(t => { if (t) tagSet.add(t); }));
+    res.json({ success: true, tags: [...tagSet].sort() });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get reference links for current user
+router.get('/api/content-ref-links', isAuthenticated, async (req, res) => {
+  try {
+    const userId = req.session.userId;
+    const contents = await Content.find({
+      $or: [
+        { owner: userId },
+        { 'collaborators.user_id': userId, 'collaborators.status': 'accepted' }
+      ],
+      reference_links: { $exists: true, $ne: [] }
+    }).select('reference_links');
+    const linkSet = new Set();
+    contents.forEach(c => (c.reference_links || []).forEach(l => { if (l) linkSet.add(l); }));
+    res.json({ success: true, links: [...linkSet] });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // === Collaboration Endpoints ===
 
 // Invite collaborator

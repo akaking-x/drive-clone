@@ -49,8 +49,8 @@ class ContentManagerApp {
     });
 
     // New content
-    document.getElementById('btnNewContent').addEventListener('click', () => this.openModal('createContentModal'));
-    document.getElementById('btnWelcomeCreate').addEventListener('click', () => this.openModal('createContentModal'));
+    document.getElementById('btnNewContent').addEventListener('click', () => this.openCreateContentModal());
+    document.getElementById('btnWelcomeCreate').addEventListener('click', () => this.openCreateContentModal());
     document.getElementById('btnCreateContent').addEventListener('click', () => this.createContent());
 
     // Upload post
@@ -104,7 +104,6 @@ class ContentManagerApp {
     viewerVideo.addEventListener('click', (e) => {
       const video = e.target;
       if (video.paused) {
-        video.muted = false;
         video.play().catch(() => {});
         document.getElementById('viewerPlayBtn').style.display = 'none';
       } else {
@@ -112,20 +111,28 @@ class ContentManagerApp {
       }
     });
 
-    // iOS play button fallback
+    // iOS play button fallback - start muted first, then unmute
     document.getElementById('viewerPlayBtn').addEventListener('click', (e) => {
       e.stopPropagation();
-      viewerVideo.muted = false;
+      viewerVideo.muted = true;
       viewerVideo.play().then(() => {
         document.getElementById('viewerPlayBtn').style.display = 'none';
-      }).catch(() => {
-        // Last resort: try muted
-        viewerVideo.muted = true;
-        viewerVideo.play().then(() => {
-          document.getElementById('viewerPlayBtn').style.display = 'none';
-        }).catch(() => {});
-      });
+        // Try unmuting
+        viewerVideo.muted = false;
+        const unmuteBtn = document.getElementById('viewerUnmuteBtn');
+        if (unmuteBtn) unmuteBtn.style.display = 'none';
+      }).catch(() => {});
     });
+
+    // Unmute button
+    const unmuteBtn = document.getElementById('viewerUnmuteBtn');
+    if (unmuteBtn) {
+      unmuteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        viewerVideo.muted = false;
+        unmuteBtn.style.display = 'none';
+      });
+    }
 
     // Video progress bar
     viewerVideo.addEventListener('timeupdate', () => {
@@ -522,13 +529,20 @@ class ContentManagerApp {
 
     viewer.addEventListener('touchstart', (e) => {
       // Don't track swipes on sidebar buttons or progress bar
-      if (e.target.closest('.cm-v-sidebar, .cm-v-progress, .cm-v-status-bar, .cm-v-btn')) return;
-      startX = e.touches[0].clientX;
+      if (e.target.closest('.cm-v-sidebar, .cm-v-progress, .cm-v-status-bar, .cm-v-btn, .cm-v-unmute-btn')) return;
+      const touchX = e.touches[0].clientX;
+      startX = touchX;
       startY = e.touches[0].clientY;
       startTime = Date.now();
       tracking = true;
       swiping = false;
-    }, { passive: true });
+
+      // Block edge swipes (iOS back/forward navigation) within 25px of screen edge
+      const edgeThreshold = 25;
+      if (touchX < edgeThreshold || touchX > window.innerWidth - edgeThreshold) {
+        e.preventDefault();
+      }
+    }, { passive: false });
 
     viewer.addEventListener('touchmove', (e) => {
       if (!tracking) return;
@@ -541,6 +555,7 @@ class ContentManagerApp {
       }
 
       if (swiping) {
+        e.preventDefault(); // Block iOS edge navigation
         // Visual feedback: translate video with finger
         const clampedDx = Math.max(-120, Math.min(120, dx));
         const opacity = 1 - Math.abs(clampedDx) / 300;
@@ -548,7 +563,7 @@ class ContentManagerApp {
         video.style.opacity = opacity;
         video.style.transition = 'none';
       }
-    }, { passive: true });
+    }, { passive: false });
 
     viewer.addEventListener('touchend', (e) => {
       if (!tracking) return;
@@ -885,9 +900,7 @@ class ContentManagerApp {
         if (data.url) {
           video.src = data.url;
           video.load();
-          video.addEventListener('canplay', () => {
-            this._tryAutoplay(video);
-          }, { once: true });
+          this._tryAutoplay(video);
         }
       } catch(e) {}
     } else {
@@ -987,9 +1000,7 @@ class ContentManagerApp {
             if (data.url) {
               video.src = data.url;
               video.load();
-              video.addEventListener('canplay', () => {
-                this._tryAutoplay(video);
-              }, { once: true });
+              this._tryAutoplay(video);
             }
             slideIn();
           }).catch(() => {
@@ -1029,15 +1040,100 @@ class ContentManagerApp {
     const data = await res.json();
     if (data.success) {
       this.closeModal('createContentModal');
-      // Clear form
-      ['inputContentName', 'inputCategory', 'inputTags', 'inputRefLinks', 'inputDescription'].forEach(id => {
-        document.getElementById(id).value = '';
-      });
       await this.loadContents(false);
       this.selectContent(data.content._id);
       this.showToast('Content created', 'success');
     } else {
       this.showToast(data.error || 'Error', 'error');
+    }
+  }
+
+  async openCreateContentModal() {
+    // Clear form
+    ['inputContentName', 'inputCategory', 'inputTags', 'inputRefLinks', 'inputDescription'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    this.openModal('createContentModal');
+
+    // Load existing values for chips
+    try {
+      const [catRes, tagRes, linkRes] = await Promise.all([
+        fetch('/api/content-categories'),
+        fetch('/api/content-platform-tags'),
+        fetch('/api/content-ref-links')
+      ]);
+      const [catData, tagData, linkData] = await Promise.all([catRes.json(), tagRes.json(), linkRes.json()]);
+
+      // Category chips
+      const catContainer = document.getElementById('categoryChips');
+      if (catData.success && catData.categories.length > 0) {
+        catContainer.innerHTML = catData.categories.map(c =>
+          `<span class="cm-chip" data-chip-type="category" data-chip-value="${this.escapeHtml(c)}">${this.escapeHtml(c)}</span>`
+        ).join('');
+        catContainer.querySelectorAll('.cm-chip').forEach(chip => {
+          chip.addEventListener('click', () => {
+            document.getElementById('inputCategory').value = chip.dataset.chipValue;
+            catContainer.querySelectorAll('.cm-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+          });
+        });
+      } else {
+        catContainer.innerHTML = '';
+      }
+
+      // Platform tag chips
+      const tagContainer = document.getElementById('platformTagChips');
+      if (tagData.success && tagData.tags.length > 0) {
+        tagContainer.innerHTML = tagData.tags.map(t =>
+          `<span class="cm-chip" data-chip-type="tag" data-chip-value="${this.escapeHtml(t)}">${this.escapeHtml(t)}</span>`
+        ).join('');
+        tagContainer.querySelectorAll('.cm-chip').forEach(chip => {
+          chip.addEventListener('click', () => {
+            const input = document.getElementById('inputTags');
+            const current = input.value.split(',').map(s => s.trim()).filter(Boolean);
+            const val = chip.dataset.chipValue;
+            if (current.includes(val)) {
+              // Remove
+              input.value = current.filter(v => v !== val).join(', ');
+              chip.classList.remove('active');
+            } else {
+              // Add
+              current.push(val);
+              input.value = current.join(', ');
+              chip.classList.add('active');
+            }
+          });
+        });
+      } else {
+        tagContainer.innerHTML = '';
+      }
+
+      // Reference link chips
+      const linkContainer = document.getElementById('refLinkChips');
+      if (linkData.success && linkData.links.length > 0) {
+        linkContainer.innerHTML = linkData.links.map(l =>
+          `<span class="cm-chip" data-chip-type="link" data-chip-value="${this.escapeHtml(l)}" title="${this.escapeHtml(l)}">${this.escapeHtml(l.length > 40 ? l.substring(0, 40) + '...' : l)}</span>`
+        ).join('');
+        linkContainer.querySelectorAll('.cm-chip').forEach(chip => {
+          chip.addEventListener('click', () => {
+            const textarea = document.getElementById('inputRefLinks');
+            const current = textarea.value.split('\n').map(s => s.trim()).filter(Boolean);
+            const val = chip.dataset.chipValue;
+            if (current.includes(val)) {
+              textarea.value = current.filter(v => v !== val).join('\n');
+              chip.classList.remove('active');
+            } else {
+              current.push(val);
+              textarea.value = current.join('\n');
+              chip.classList.add('active');
+            }
+          });
+        });
+      } else {
+        linkContainer.innerHTML = '';
+      }
+    } catch(e) {
+      console.error('[CM] Load chips error:', e);
     }
   }
 
@@ -1689,33 +1785,45 @@ class ContentManagerApp {
     const video = document.getElementById('viewerVideo');
     if (video) { video.pause(); video.src = ''; }
     document.getElementById('viewerPlayBtn').style.display = 'none';
+    const unmuteBtn = document.getElementById('viewerUnmuteBtn');
+    if (unmuteBtn) unmuteBtn.style.display = 'none';
   }
 
-  // Try to autoplay video - iOS compatible
+  // Try to autoplay video - iOS compatible (always muted, show unmute btn)
   _tryAutoplay(video) {
     const playBtn = document.getElementById('viewerPlayBtn');
+    const unmuteBtn = document.getElementById('viewerUnmuteBtn');
     playBtn.style.display = 'none';
+    if (unmuteBtn) unmuteBtn.style.display = 'none';
 
-    // First try: play muted (iOS always allows muted autoplay)
+    // Always start muted - iOS universally allows muted autoplay
     video.muted = true;
-    const playPromise = video.play();
-    if (playPromise !== undefined) {
-      playPromise.then(() => {
-        // Muted autoplay worked - try unmuting
-        video.muted = false;
-        // If unmuting causes a pause on iOS, re-mute
-        const checkPlaying = () => {
-          if (video.paused && video.src) {
-            // Unmute failed, stay muted and show feedback
-            video.muted = true;
-            video.play().catch(() => {});
-          }
-        };
-        setTimeout(checkPlaying, 100);
-      }).catch(() => {
-        // Even muted autoplay failed - show play button
-        playBtn.style.display = '';
-      });
+    video.playsInline = true;
+    video.setAttribute('playsinline', '');
+    video.setAttribute('webkit-playsinline', '');
+
+    const attemptPlay = () => {
+      const p = video.play();
+      if (p !== undefined) {
+        p.then(() => {
+          // Muted autoplay worked - show unmute button
+          if (unmuteBtn) unmuteBtn.style.display = '';
+        }).catch(() => {
+          // Even muted failed - show play button
+          playBtn.style.display = '';
+        });
+      }
+    };
+
+    // Use loadeddata which fires more reliably on iOS than canplay
+    if (video.readyState >= 2) {
+      attemptPlay();
+    } else {
+      video.addEventListener('loadeddata', attemptPlay, { once: true });
+      // Fallback timeout in case loadeddata never fires
+      setTimeout(() => {
+        if (video.paused && video.src) attemptPlay();
+      }, 2000);
     }
   }
 

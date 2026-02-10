@@ -202,9 +202,10 @@ html, body {
   margin-left: var(--cm-sidebar-width);
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
   max-width: calc(100vw - var(--cm-sidebar-width));
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 .cm-header {
@@ -215,8 +216,6 @@ html, body {
   align-items: center;
   padding: 0 16px;
   gap: 8px;
-  position: sticky;
-  top: 0;
   z-index: 50;
   flex-shrink: 0;
 }
@@ -308,6 +307,8 @@ html, body {
   flex: 1;
   padding: 20px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
 }
 
 /* Welcome State */
@@ -495,6 +496,8 @@ html, body {
   overflow-y: auto;
   transform: scale(0.95);
   transition: transform 0.2s;
+  display: flex;
+  flex-direction: column;
 }
 .cm-modal-overlay.active .cm-modal { transform: scale(1); }
 
@@ -505,6 +508,12 @@ html, body {
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
+  position: sticky;
+  top: 0;
+  background: var(--white);
+  z-index: 2;
+  flex-shrink: 0;
+  border-radius: 12px 12px 0 0;
 }
 .cm-modal-header h2 { font-size: 16px; font-weight: 600; }
 
@@ -528,6 +537,12 @@ html, body {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+  position: sticky;
+  bottom: 0;
+  background: var(--white);
+  z-index: 2;
+  flex-shrink: 0;
+  border-radius: 0 0 12px 12px;
 }
 
 .cm-form-group { margin-bottom: 14px; }
@@ -553,6 +568,42 @@ html, body {
   outline: none;
   border-color: var(--cm-accent);
   box-shadow: 0 0 0 3px rgba(254,44,85,0.1);
+}
+
+/* Reusable chip selection */
+.cm-chip-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.cm-chip-container:empty { display: none; }
+.cm-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-size: 12px;
+  background: var(--bg-color);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: all 0.15s;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cm-chip:hover {
+  background: rgba(254,44,85,0.08);
+  border-color: var(--cm-accent);
+  color: var(--cm-accent);
+}
+.cm-chip.active {
+  background: var(--cm-accent);
+  color: #fff;
+  border-color: var(--cm-accent);
 }
 
 /* Batch Upload */
@@ -754,6 +805,8 @@ html, body {
 .cm-viewer-overlay {
   background: #000;
   padding: 0;
+  overscroll-behavior: none;
+  touch-action: none;
 }
 .cm-viewer-overlay.active { display: flex; }
 
@@ -762,14 +815,12 @@ html, body {
   height: 100%;
   position: relative;
   overflow: hidden;
-}
-
-/* Full screen video */
-.cm-viewer {
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
   touch-action: pan-y;
+  overscroll-behavior-x: none;
+  -webkit-overflow-scrolling: touch;
 }
 .cm-viewer video {
   width: 100%;
@@ -815,6 +866,30 @@ html, body {
 .cm-v-play-btn:active {
   transform: translate(-50%, -50%) scale(0.9);
   background: rgba(254,44,85,0.6);
+}
+
+/* Unmute button */
+.cm-v-unmute-btn {
+  position: absolute;
+  bottom: 80px; left: 16px;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.6);
+  border: 1.5px solid rgba(255,255,255,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 15;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition: background 0.15s;
+  animation: cm-unmute-pulse 2s ease infinite;
+}
+.cm-v-unmute-btn:active { background: rgba(254,44,85,0.6); }
+@keyframes cm-unmute-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(254,44,85,0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(254,44,85,0); }
 }
 
 /* Top overlay bar */
@@ -1319,7 +1394,7 @@ html, body {
 @media (max-width: 768px) {
   .cm-sidebar { transform: translateX(-100%); }
   .cm-sidebar.open { transform: translateX(0); }
-  .cm-main { margin-left: 0; max-width: 100vw; }
+  .cm-main { margin-left: 0; max-width: 100vw; height: 100vh; height: 100dvh; }
   .cm-menu-toggle { display: block; }
 
   .cm-header { padding: 0 10px; gap: 6px; }
